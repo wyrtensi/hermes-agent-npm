@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test npm wrapper
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out npm wrapper
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: "22"
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        with:
+          python-version: "3.13"
+
+      - name: Sync package version from upstream Hermes Agent
+        run: python scripts/sync_upstream_version.py
+
+      - name: Test package
+        run: npm test
+
+      - name: Verify npm package contents
+        run: npm pack --dry-run
