@@ -78,6 +78,7 @@ npm package: hermes-agent
 publisher: GitHub Actions
 organization or user: wyrtensi
 repository: hermes-agent-npm
+workflow filename: npm-publish.yml
 allowed action: npm publish
 ```
 
