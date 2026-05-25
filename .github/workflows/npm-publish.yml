@@ -34,6 +34,7 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: "24"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Set up Python
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
@@ -65,4 +66,6 @@ jobs:
 
       - name: Publish to npm
         if: steps.npm.outputs.already_published != 'true'
-        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public
