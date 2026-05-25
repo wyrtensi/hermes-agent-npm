@@ -61,7 +61,7 @@ The workflow:
 3. Skips publishing if `hermes-agent@<version>` already exists on npm.
 4. Runs `npm test`.
 5. Runs `npm pack --dry-run`.
-6. Publishes to npm using `secrets.NPM_TOKEN`.
+6. Publishes to npm through npm trusted publishing with GitHub Actions OIDC.
 
 ## GitHub setup
 
@@ -71,16 +71,23 @@ Create a GitHub repository named:
 hermes-agent-npm
 ```
 
-Add this secret in repository settings:
+Configure npm trusted publishing for this package:
 
 ```text
-NPM_TOKEN
+npm package: hermes-agent
+publisher: GitHub Actions
+organization or user: wyrtensi
+repository: hermes-agent-npm
+allowed action: npm publish
 ```
 
-Path in GitHub:
+No npm token is needed in GitHub Actions. The workflow uses GitHub's OIDC token
+through `permissions: id-token: write`.
+
+Path on npm:
 
 ```text
-Settings -> Secrets and variables -> Actions -> New repository secret
+npmjs.com -> hermes-agent -> Settings -> Trusted Publisher
 ```
 
 Then push this repository:
