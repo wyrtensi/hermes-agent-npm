@@ -26,7 +26,11 @@ The actual Hermes Agent runtime is distributed as the Python package
 ```bash
 hermes
 hermes-agent
+hermesagent
 ```
+
+The canonical npm package is `hermes-agent`. The package `hermesagent` is an
+alias for users who search for the name without the hyphen.
 
 The `postinstall` step installs the matching Python package version so that a
 single command prepares the npm wrapper and the Python runtime:
@@ -74,6 +78,12 @@ It performs these steps:
    ```
 
 6. Exits with a non-zero status if both attempts fail.
+
+The script also checks whether the related alias package is already installed
+globally. If `hermes-agent` is installed and a user installs `hermesagent`, or
+the other way around, it prints a warning explaining that both packages point to
+the same Hermes Agent runtime. It does not uninstall packages or modify npm
+global state.
 
 ## What the script does not do
 

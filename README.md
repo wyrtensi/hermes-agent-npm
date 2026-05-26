@@ -9,11 +9,18 @@ The npm package name is:
 hermes-agent
 ```
 
+This repository also publishes the alias package:
+
+```bash
+hermesagent
+```
+
 The installed commands are:
 
 ```bash
 hermes
 hermes-agent
+hermesagent
 ```
 
 The npm package name `hermes` is already owned by another package on npm, so this
@@ -33,12 +40,24 @@ Install globally:
 npm install -g hermes-agent
 ```
 
+Or install the alias package:
+
+```bash
+npm install -g hermesagent
+```
+
 Use it:
 
 ```bash
 hermes --help
 hermes-agent --help
+hermesagent --help
 ```
+
+`hermesagent` is only an alias for users who search for the package without the
+hyphen. You do not need to install both `hermes-agent` and `hermesagent`. If one
+is already installed globally, the other package prints a warning during
+`postinstall`.
 
 During npm installation, `postinstall` installs the matching Python package:
 
@@ -61,10 +80,11 @@ The workflow:
 
 1. Fetches the current Hermes Agent version from upstream `pyproject.toml`.
 2. Updates `package.json` in the workflow workspace.
-3. Skips publishing if `hermes-agent@<version>` already exists on npm.
+3. Skips publishing if `hermes-agent@<version>` and `hermesagent@<version>` already exist on npm.
 4. Runs `npm test`.
 5. Runs `npm pack --dry-run`.
-6. Publishes to npm with the `NPM_TOKEN` GitHub Actions secret.
+6. Builds and verifies the `hermesagent` alias package.
+7. Publishes missing npm packages with the `NPM_TOKEN` GitHub Actions secret.
 
 ## GitHub setup
 
@@ -111,4 +131,6 @@ first publish.
 python scripts/sync_upstream_version.py
 npm test
 npm pack --dry-run
+npm run build:alias
+npm pack --dry-run ./dist/hermesagent
 ```

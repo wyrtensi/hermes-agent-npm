@@ -46,6 +46,13 @@ jobs:
       - name: Verify npm package contents
         run: npm pack --dry-run
 
+      - name: Build alias package
+        run: npm run build:alias
+
+      - name: Verify alias npm package contents
+        run: npm pack --dry-run
+        working-directory: dist/hermesagent
+
       - name: Verify npm command shims
         shell: bash
         run: |
@@ -53,3 +60,12 @@ jobs:
           npm install --ignore-scripts --prefix "$tmp_dir" hermes-agent@latest
           test -e "$tmp_dir/node_modules/.bin/hermes" || test -e "$tmp_dir/node_modules/.bin/hermes.cmd"
           test -e "$tmp_dir/node_modules/.bin/hermes-agent" || test -e "$tmp_dir/node_modules/.bin/hermes-agent.cmd"
+
+      - name: Verify alias npm command shims
+        shell: bash
+        run: |
+          tmp_dir="$(mktemp -d)"
+          npm install --ignore-scripts --prefix "$tmp_dir" ./dist/hermesagent
+          test -e "$tmp_dir/node_modules/.bin/hermes" || test -e "$tmp_dir/node_modules/.bin/hermes.cmd"
+          test -e "$tmp_dir/node_modules/.bin/hermes-agent" || test -e "$tmp_dir/node_modules/.bin/hermes-agent.cmd"
+          test -e "$tmp_dir/node_modules/.bin/hermesagent" || test -e "$tmp_dir/node_modules/.bin/hermesagent.cmd"

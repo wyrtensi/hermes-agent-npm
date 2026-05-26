@@ -56,16 +56,43 @@ jobs:
             echo "already_published=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Check whether alias version is already published
+        id: npm_alias
+        shell: bash
+        run: |
+          if npm view "hermesagent@${{ steps.sync.outputs.version }}" version >/dev/null 2>&1; then
+            echo "already_published=true" >> "$GITHUB_OUTPUT"
+            echo "hermesagent@${{ steps.sync.outputs.version }} is already published."
+          else
+            echo "already_published=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Test package
-        if: steps.npm.outputs.already_published != 'true'
+        if: steps.npm.outputs.already_published != 'true' || steps.npm_alias.outputs.already_published != 'true'
         run: npm test
 
       - name: Verify npm package contents
         if: steps.npm.outputs.already_published != 'true'
         run: npm pack --dry-run
 
+      - name: Build alias package
+        if: steps.npm_alias.outputs.already_published != 'true'
+        run: npm run build:alias
+
+      - name: Verify alias npm package contents
+        if: steps.npm_alias.outputs.already_published != 'true'
+        run: npm pack --dry-run
+        working-directory: dist/hermesagent
+
       - name: Publish to npm
         if: steps.npm.outputs.already_published != 'true'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --access public
+
+      - name: Publish alias to npm
+        if: steps.npm_alias.outputs.already_published != 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public
+        working-directory: dist/hermesagent

@@ -9,6 +9,7 @@
     "hermes-agent": "bin/hermes-agent.js"
   },
   "scripts": {
+    "build:alias": "node scripts/build-alias-package.js",
     "postinstall": "node scripts/postinstall.js",
     "test": "node --test"
   },
