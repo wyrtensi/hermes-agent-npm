@@ -12,7 +12,14 @@ permissions:
 jobs:
   test:
     name: Test npm wrapper
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
 
     steps:
       - name: Check out npm wrapper
@@ -38,3 +45,11 @@ jobs:
 
       - name: Verify npm package contents
         run: npm pack --dry-run
+
+      - name: Verify npm command shims
+        shell: bash
+        run: |
+          tmp_dir="$(mktemp -d)"
+          npm install --ignore-scripts --prefix "$tmp_dir" hermes-agent@latest
+          test -e "$tmp_dir/node_modules/.bin/hermes" || test -e "$tmp_dir/node_modules/.bin/hermes.cmd"
+          test -e "$tmp_dir/node_modules/.bin/hermes-agent" || test -e "$tmp_dir/node_modules/.bin/hermes-agent.cmd"
