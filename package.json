@@ -27,7 +27,8 @@
     "bin/",
     "lib/",
     "scripts/postinstall.js",
-    "README.md"
+    "README.md",
+    "SECURITY.md"
   ],
   "hermesAgent": {
     "pythonPackageVersion": "0.14.0",

@@ -46,6 +46,9 @@ During npm installation, `postinstall` installs the matching Python package:
 python -m pip install --upgrade hermes-agent==<npm package version>
 ```
 
+For a detailed explanation of why this package uses `postinstall` and exactly
+what the script does, see [SECURITY.md](SECURITY.md).
+
 ## Automated publishing
 
 `.github/workflows/npm-publish.yml` runs:
