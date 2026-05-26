@@ -30,7 +30,10 @@ hermesagent
 ```
 
 The canonical npm package is `hermes-agent`. The package `hermesagent` is an
-alias for users who search for the name without the hyphen.
+alias manifest for users who search for the name without the hyphen. npm blocks
+publishing the unscoped `hermesagent` package because the name is too similar to
+`hermes-agent`; a scoped alias such as `@wyrtensi/hermesagent` can be published
+separately if needed.
 
 The `postinstall` step installs the matching Python package version so that a
 single command prepares the npm wrapper and the Python runtime:
