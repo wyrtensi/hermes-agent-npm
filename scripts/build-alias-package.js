@@ -22,6 +22,10 @@ fs.rmSync(distDir, { recursive: true, force: true });
 fs.mkdirSync(distDir, { recursive: true });
 
 for (const relativePath of [
+  "DISCLAIMER.md",
+  "LICENSE",
+  "NOTICE",
+  "PRIVACY.md",
   "README.md",
   "SECURITY.md",
   "bin/hermes-agent.js",
@@ -47,6 +51,10 @@ const aliasPackage = {
     "bin/",
     "lib/",
     "scripts/postinstall.js",
+    "DISCLAIMER.md",
+    "LICENSE",
+    "NOTICE",
+    "PRIVACY.md",
     "README.md",
     "SECURITY.md"
   ],

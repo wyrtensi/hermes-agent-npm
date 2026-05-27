@@ -16,9 +16,14 @@ does, and what it does not do.
 
 ## Why postinstall exists
 
-`hermes-agent` on npm is a small Node.js bridge for the upstream Python project:
+`hermes-agent` on npm is an unofficial small Node.js bridge for the upstream
+Python project:
 
 https://github.com/NousResearch/Hermes-Agent
+
+This npm bridge is not affiliated with, endorsed by, sponsored by, or maintained
+by Nous Research. See [DISCLAIMER.md](DISCLAIMER.md) and [NOTICE](NOTICE) for
+the project attribution and legal notice.
 
 The actual Hermes Agent runtime is distributed as the Python package
 `hermes-agent`. The npm package provides convenient global commands:
@@ -26,7 +31,6 @@ The actual Hermes Agent runtime is distributed as the Python package
 ```bash
 hermes
 hermes-agent
-hermesagent
 ```
 
 The canonical npm package is `hermes-agent`. The package `hermesagent` is an

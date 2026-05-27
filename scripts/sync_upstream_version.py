@@ -21,7 +21,7 @@ def main():
 
     package = json.loads(PACKAGE_JSON.read_text(encoding="utf-8"))
     package["version"] = version
-    package["description"] = f"npm bridge for Hermes Agent {version}: {description}"
+    package["description"] = f"Unofficial npm bridge for Hermes Agent {version}: {description}"
     package.setdefault("hermesAgent", {})["pythonPackageVersion"] = version
     package["hermesAgent"]["upstreamRepository"] = "nousresearch/hermes-agent"
 

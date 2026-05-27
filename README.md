@@ -1,4 +1,11 @@
-# hermes-agent npm package
+# hermes-agent npm bridge
+
+This is an unofficial npm bridge for Hermes Agent by Nous Research. It is not
+affiliated with, endorsed by, sponsored by, or maintained by Nous Research.
+
+Hermes Agent is developed by Nous Research and distributed separately as a
+Python package. This npm package only installs and launches that upstream Python
+runtime.
 
 This repository publishes the npm bridge for
 [NousResearch/Hermes-Agent](https://github.com/NousResearch/Hermes-Agent).
@@ -24,11 +31,26 @@ The installed commands are:
 ```bash
 hermes
 hermes-agent
-hermesagent
 ```
 
 The npm package name `hermes` is already owned by another package on npm, so this
 repository publishes `hermes-agent` and exposes `hermes` as a CLI binary.
+
+## Legal and attribution
+
+- Wrapper license: MIT, see [LICENSE](LICENSE).
+- Upstream attribution: see [NOTICE](NOTICE).
+- Unofficial package disclaimer: see [DISCLAIMER.md](DISCLAIMER.md).
+- Privacy notes: see [PRIVACY.md](PRIVACY.md).
+- Install-script security notes: see [SECURITY.md](SECURITY.md).
+
+For wrapper issues, use this repository:
+
+https://github.com/wyrtensi/hermes-agent-npm/issues
+
+For upstream Hermes Agent issues, use the upstream project:
+
+https://github.com/NousResearch/hermes-agent/issues
 
 ## Install
 
@@ -51,7 +73,7 @@ hermes --help
 hermes-agent --help
 ```
 
-If an alias package is published later, you do not need to install both
+If a scoped alias package is published later, you do not need to install both
 `hermes-agent` and the alias. If one is already installed globally, the other
 package prints a warning during `postinstall`.
 
