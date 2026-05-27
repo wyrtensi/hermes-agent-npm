@@ -109,6 +109,24 @@ The `postinstall` script does not:
 Its network activity is limited to the normal package downloads performed by
 `pip` from the user's configured Python package index.
 
+## Publishing security
+
+The npm package is published by GitHub Actions through npm trusted publishing
+with OpenID Connect. The publish workflow is allowed to publish only from:
+
+```text
+GitHub owner: wyrtensi
+GitHub repository: hermes-agent-npm
+Workflow file: npm-publish.yml
+Allowed npm action: npm publish
+```
+
+The workflow does not use a long-lived npm publish token. npm package settings
+should use `Require two-factor authentication and disallow tokens` so manual
+publishes require 2FA and traditional npm tokens cannot publish this package.
+Trusted publishing continues to work because it uses short-lived OIDC
+credentials issued for the configured workflow.
+
 ## Why the package is version-pinned
 
 The npm package version and the Python package version are kept in sync. The

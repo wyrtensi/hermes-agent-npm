@@ -101,7 +101,8 @@ The workflow:
 3. Skips publishing if `hermes-agent@<version>` already exists on npm.
 4. Runs `npm test`.
 5. Runs `npm pack --dry-run`.
-6. Publishes missing npm packages with the `NPM_TOKEN` GitHub Actions secret.
+6. Publishes missing npm packages through npm trusted publishing with GitHub
+   Actions OIDC.
 
 ## GitHub setup
 
@@ -111,17 +112,7 @@ Create a GitHub repository named:
 hermes-agent-npm
 ```
 
-Create a classic or automation npm token with publish access, then add it as a
-GitHub Actions secret:
-
-```text
-Repository -> Settings -> Secrets and variables -> Actions -> New repository secret
-Name: NPM_TOKEN
-Value: your npm token
-```
-
-After the first package version exists on npm, this repository can be switched
-back to npm trusted publishing if desired:
+Configure npm trusted publishing for the published npm package:
 
 ```text
 npm package: hermes-agent
@@ -131,6 +122,12 @@ repository: hermes-agent-npm
 workflow filename: npm-publish.yml
 allowed action: npm publish
 ```
+
+The trusted publisher environment name should stay empty unless the workflow job
+also defines a matching GitHub Actions environment. In the package's npm
+Publishing access settings, use `Require two-factor authentication and disallow
+tokens` after trusted publishing is configured. GitHub Actions will keep
+publishing through OIDC, while long-lived npm publish tokens are blocked.
 
 Then push this repository:
 
