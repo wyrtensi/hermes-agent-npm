@@ -1,11 +1,11 @@
 {
   "name": "hermes-agent",
-  "version": "0.14.0",
-  "description": "Unofficial npm bridge for Hermes Agent 0.14.0: The self-improving AI agent \u2014 creates skills from experience, improves them during use, and runs anywhere",
+  "version": "0.15.1",
+  "description": "Unofficial npm bridge for Hermes Agent 0.15.1: The self-improving AI agent \u2014 creates skills from experience, improves them during use, and runs anywhere",
   "license": "MIT",
   "type": "commonjs",
   "bin": {
-    "hermes": "bin/hermes-agent.js",
+    "hermes": "bin/hermes.js",
     "hermes-agent": "bin/hermes-agent.js"
   },
   "scripts": {
@@ -36,7 +36,7 @@
     "SECURITY.md"
   ],
   "hermesAgent": {
-    "pythonPackageVersion": "0.14.0",
+    "pythonPackageVersion": "0.15.1",
     "upstreamRepository": "nousresearch/hermes-agent"
   }
 }

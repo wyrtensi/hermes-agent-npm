@@ -30,5 +30,5 @@ npm install -g hermes-agent --ignore-scripts
 Then install the upstream Python runtime manually:
 
 ```bash
-python -m pip install --upgrade hermes-agent==0.14.0
+python -m pip install --upgrade hermes-agent==<npm package version>
 ```

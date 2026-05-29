@@ -28,6 +28,7 @@ for (const relativePath of [
   "PRIVACY.md",
   "README.md",
   "SECURITY.md",
+  "bin/hermes.js",
   "bin/hermes-agent.js",
   "lib/package-metadata.js",
   "lib/python-launcher.js",
@@ -42,7 +43,10 @@ const aliasPackage = {
   name: ALIAS_PACKAGE_NAME,
   description: `Alias npm package for ${rootPackage.name}. ${rootPackage.description}`,
   bin: Object.fromEntries(
-    getPackageBinNames(ALIAS_PACKAGE_NAME).map((name) => [name, "bin/hermes-agent.js"])
+    getPackageBinNames(ALIAS_PACKAGE_NAME).map((name) => [
+      name,
+      name === "hermes" ? "bin/hermes.js" : "bin/hermes-agent.js"
+    ])
   ),
   scripts: {
     postinstall: "node scripts/postinstall.js"

@@ -69,19 +69,19 @@ It performs these steps:
 3. Builds the pinned Python package spec from `package.json`, for example:
 
    ```bash
-   hermes-agent==0.14.0
+   hermes-agent==<npm package version>
    ```
 
 4. Runs:
 
    ```bash
-   python -m pip install --upgrade hermes-agent==0.14.0
+   python -m pip install --upgrade hermes-agent==<npm package version>
    ```
 
 5. If that install fails, retries with:
 
    ```bash
-   python -m pip install --upgrade --user hermes-agent==0.14.0
+   python -m pip install --upgrade --user hermes-agent==<npm package version>
    ```
 
 6. Exits with a non-zero status if both attempts fail.
@@ -159,7 +159,7 @@ npm install -g hermes-agent --ignore-scripts
 Then install the Python runtime manually:
 
 ```bash
-python -m pip install --upgrade hermes-agent==0.14.0
+python -m pip install --upgrade hermes-agent==<npm package version>
 ```
 
 ## Why security scanners flag this package

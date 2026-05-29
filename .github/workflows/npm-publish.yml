@@ -3,7 +3,7 @@ name: Publish npm package
 on:
   workflow_dispatch:
   schedule:
-    - cron: "17 4 * * *"
+    - cron: "17 * * * *"
   push:
     tags:
       - "npm-v*"
@@ -57,14 +57,28 @@ jobs:
             echo "already_published=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Test package
+      - name: Check whether matching Python package is published
+        id: pypi
         if: steps.npm.outputs.already_published != 'true'
+        shell: bash
+        run: |
+          version="${{ steps.sync.outputs.version }}"
+          if python -c "import urllib.request; urllib.request.urlopen('https://pypi.org/pypi/hermes-agent/${version}/json', timeout=30).close()"; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "hermes-agent==$version is available on PyPI."
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "hermes-agent==$version is not available on PyPI yet; skipping npm publish."
+          fi
+
+      - name: Test package
+        if: steps.npm.outputs.already_published != 'true' && steps.pypi.outputs.available == 'true'
         run: npm test
 
       - name: Verify npm package contents
-        if: steps.npm.outputs.already_published != 'true'
+        if: steps.npm.outputs.already_published != 'true' && steps.pypi.outputs.available == 'true'
         run: npm pack --dry-run
 
       - name: Publish to npm with trusted publishing
-        if: steps.npm.outputs.already_published != 'true'
-        run: npm publish --access public
+        if: steps.npm.outputs.already_published != 'true' && steps.pypi.outputs.available == 'true'
+        run: npm publish --access public --provenance

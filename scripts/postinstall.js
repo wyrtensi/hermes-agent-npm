@@ -17,7 +17,11 @@ function warnIfRelatedPackageInstalled() {
     return;
   }
 
-  const rootResult = spawnSync("npm", ["root", "-g"], {
+  const npmRootCommand = process.env.npm_execpath
+    ? { command: process.execPath, args: [process.env.npm_execpath, "root", "-g"] }
+    : { command: process.platform === "win32" ? "npm.cmd" : "npm", args: ["root", "-g"] };
+
+  const rootResult = spawnSync(npmRootCommand.command, npmRootCommand.args, {
     encoding: "utf8",
     windowsHide: true
   });

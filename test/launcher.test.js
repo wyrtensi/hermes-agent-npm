@@ -7,6 +7,7 @@ const {
   getPythonEntryPoint,
   getPythonPackageSpec
 } = require("../lib/python-launcher");
+const packageJson = require("../package.json");
 
 test("uses python3 before python on Unix-like systems", () => {
   assert.deepEqual(getPythonCandidates("linux"), [
@@ -46,5 +47,5 @@ test("builds a Python -c invocation that preserves user arguments", () => {
 });
 
 test("pins the Python package to the npm package version", () => {
-  assert.equal(getPythonPackageSpec(), "hermes-agent==0.14.0");
+  assert.equal(getPythonPackageSpec(), `hermes-agent==${packageJson.hermesAgent.pythonPackageVersion}`);
 });
