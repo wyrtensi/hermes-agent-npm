@@ -37,7 +37,7 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Sync package version from upstream Hermes Agent
+      - name: Sync package version from PyPI Hermes Agent
         run: python scripts/sync_upstream_version.py
 
       - name: Test package

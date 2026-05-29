@@ -3,7 +3,7 @@ name: Publish npm package
 on:
   workflow_dispatch:
   schedule:
-    - cron: "17 * * * *"
+    - cron: "7,22,37,52 * * * *"
   push:
     tags:
       - "npm-v*"
@@ -42,7 +42,7 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Sync package version from upstream Hermes Agent
+      - name: Sync package version from PyPI Hermes Agent
         id: sync
         run: python scripts/sync_upstream_version.py >> "$GITHUB_OUTPUT"
 

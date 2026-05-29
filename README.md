@@ -91,12 +91,12 @@ what the script does, see [SECURITY.md](SECURITY.md).
 `.github/workflows/npm-publish.yml` runs:
 
 - manually with `workflow_dispatch`
-- hourly on a schedule
+- four times per hour on a schedule
 - when a tag matching `npm-v*` is pushed
 
 The workflow:
 
-1. Fetches the current Hermes Agent version from upstream `pyproject.toml`.
+1. Fetches the latest published Hermes Agent version from PyPI.
 2. Updates `package.json` in the workflow workspace.
 3. Skips publishing if `hermes-agent@<version>` already exists on npm.
 4. Skips publishing if the matching Python `hermes-agent==<version>` package

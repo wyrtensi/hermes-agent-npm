@@ -1,23 +1,22 @@
 #!/usr/bin/env python3
 import json
 import sys
-import tomllib
 import urllib.request
 from pathlib import Path
 
-UPSTREAM_PYPROJECT_URL = "https://raw.githubusercontent.com/nousresearch/hermes-agent/main/pyproject.toml"
+PYPI_PROJECT_URL = "https://pypi.org/pypi/hermes-agent/json"
 PACKAGE_JSON = Path("package.json")
 
 
-def fetch_upstream_project():
-    with urllib.request.urlopen(UPSTREAM_PYPROJECT_URL, timeout=30) as response:
-        return tomllib.loads(response.read().decode("utf-8"))["project"]
+def fetch_pypi_project():
+    with urllib.request.urlopen(PYPI_PROJECT_URL, timeout=30) as response:
+        return json.loads(response.read().decode("utf-8"))["info"]
 
 
 def main():
-    project = fetch_upstream_project()
+    project = fetch_pypi_project()
     version = project["version"]
-    description = project.get("description", "Hermes Agent from NousResearch/Hermes-Agent.")
+    description = project.get("summary") or "Hermes Agent from NousResearch/Hermes-Agent."
 
     package = json.loads(PACKAGE_JSON.read_text(encoding="utf-8"))
     package["version"] = version
