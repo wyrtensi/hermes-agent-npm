@@ -32,5 +32,5 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as error:
-        print(f"Failed to sync upstream version: {error}", file=sys.stderr)
+        print(f"Failed to sync PyPI version: {error}", file=sys.stderr)
         sys.exit(1)

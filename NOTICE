@@ -3,6 +3,8 @@ Copyright (c) 2026 wyrtensi
 License: MIT
 
 This repository publishes an unofficial npm bridge for Hermes Agent.
+The bridge tracks the latest published Hermes Agent package on PyPI for npm
+release synchronization.
 
 Hermes Agent is developed by Nous Research.
 Upstream repository: https://github.com/NousResearch/hermes-agent

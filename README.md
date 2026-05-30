@@ -9,6 +9,8 @@ runtime.
 
 This repository publishes the npm bridge for
 [NousResearch/Hermes-Agent](https://github.com/NousResearch/Hermes-Agent).
+The npm bridge follows the latest published `hermes-agent` release on PyPI,
+because the npm `postinstall` step installs that Python package.
 
 The npm package name is:
 
@@ -105,6 +107,10 @@ The workflow:
 6. Runs `npm pack --dry-run`.
 7. Publishes missing npm packages through npm trusted publishing with GitHub
    Actions OIDC and npm provenance.
+
+GitHub scheduled workflows are best-effort and can be delayed or skipped by
+GitHub. The schedule checks four times per hour so new PyPI releases are picked
+up quickly without requiring a paid service or upstream webhook access.
 
 ## GitHub setup
 

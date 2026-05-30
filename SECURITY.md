@@ -139,6 +139,16 @@ hermes-agent==<npm package version>
 This avoids silently installing a newer Python Hermes runtime than the npm
 wrapper was published for.
 
+Release automation uses PyPI as the source of truth for the latest Hermes Agent
+version because this package installs the upstream Python package from PyPI.
+The upstream Git repository may update its source tree or tags on a different
+timeline than PyPI package publication.
+
+Scheduled GitHub Actions runs are best-effort and can be delayed or skipped by
+GitHub. The publish workflow checks several times per hour, but manual
+`workflow_dispatch` remains available when a release needs to be published
+immediately.
+
 ## How to audit locally
 
 Review the install script:
