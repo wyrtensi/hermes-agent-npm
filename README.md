@@ -5,7 +5,7 @@
 [![CI](https://github.com/wyrtensi/hermes-agent-npm/actions/workflows/ci.yml/badge.svg)](https://github.com/wyrtensi/hermes-agent-npm/actions/workflows/ci.yml)
 [![Upstream release](https://img.shields.io/github/v/release/NousResearch/hermes-agent?label=upstream&logo=github)](https://github.com/NousResearch/hermes-agent/releases)
 [![Node.js 20+](https://img.shields.io/badge/Node.js-20%2B-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
-[![npm provenance](https://img.shields.io/badge/npm-provenance-enabled-brightgreen)](https://docs.npmjs.com/generating-provenance-statements)
+[![npm provenance](https://img.shields.io/badge/npm%20provenance-enabled-brightgreen)](https://docs.npmjs.com/generating-provenance-statements)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 > [!IMPORTANT]
