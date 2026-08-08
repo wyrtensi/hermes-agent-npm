@@ -30,8 +30,12 @@ for (const relativePath of [
   "SECURITY.md",
   "bin/hermes.js",
   "bin/hermes-agent.js",
+  "bin/hermes-npm.js",
+  "lib/npm-channel.js",
   "lib/package-metadata.js",
   "lib/python-launcher.js",
+  "lib/upstream-migration.js",
+  "lib/uv-installer.js",
   "scripts/postinstall.js"
 ]) {
   copyFile(relativePath);
@@ -45,7 +49,11 @@ const aliasPackage = {
   bin: Object.fromEntries(
     getPackageBinNames(ALIAS_PACKAGE_NAME).map((name) => [
       name,
-      name === "hermes" ? "bin/hermes.js" : "bin/hermes-agent.js"
+      name === "hermes"
+        ? "bin/hermes.js"
+        : name === "hermes-npm"
+          ? "bin/hermes-npm.js"
+          : "bin/hermes-agent.js"
     ])
   ),
   scripts: {

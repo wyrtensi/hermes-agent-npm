@@ -1,184 +1,337 @@
-# Security notes for the npm postinstall script
 
-This package intentionally includes a `postinstall` script:
+# Security policy
 
-```json
-{
-  "scripts": {
-    "postinstall": "node scripts/postinstall.js"
-  }
-}
-```
+## Supported versions
 
-Install scripts deserve careful review because they execute automatically during
-`npm install`. This document explains exactly why this package has one, what it
-does, and what it does not do.
+Only the latest published `hermes-agent` npm release receives bridge security
+updates.
 
-## Why postinstall exists
+| Version | Status | Deployment model |
+| --- | --- | --- |
+| Latest published `>=0.20.0` | Supported | Release-pinned Git checkout and package-local `uv`/Python runtime |
+| Older `>=0.20.0` | Unsupported | Same deployment model without current bridge fixes |
+| `<0.20.0` | Unsupported | Legacy system-Python and PyPI installation |
 
-`hermes-agent` on npm is an unofficial small Node.js bridge for the upstream
-Python project:
+Security fixes in upstream Hermes Agent become available to this channel after
+upstream publishes a GitHub Release and the matching npm bridge passes its
+release checks. The native rolling channel can receive upstream commits sooner,
+with the different trust boundary described below.
 
-https://github.com/NousResearch/Hermes-Agent
+## Reporting a vulnerability
 
-This npm bridge is not affiliated with, endorsed by, sponsored by, or maintained
-by Nous Research. See [DISCLAIMER.md](DISCLAIMER.md) and [NOTICE](NOTICE) for
-the project attribution and legal notice.
+Report vulnerabilities in this npm bridge through GitHub private vulnerability
+reporting:
 
-The actual Hermes Agent runtime is distributed as the Python package
-`hermes-agent`. The npm package provides convenient global commands:
+https://github.com/wyrtensi/hermes-agent-npm/security/advisories/new
+
+Include the npm version, operating system and architecture, affected command or
+lifecycle step, impact, and reproduction details. Do not open a public issue
+for an untriaged vulnerability.
+
+Report vulnerabilities in Hermes Agent runtime behavior to upstream:
+
+https://github.com/NousResearch/hermes-agent/security
+
+Use the public bridge issue tracker only for non-sensitive installation and
+compatibility bugs:
+
+https://github.com/wyrtensi/hermes-agent-npm/issues
+
+## Security scope
+
+This policy covers:
+
+- the npm command shims and `hermes-npm` release-channel commands;
+- the explicit `hermes-npm migrate upstream` handoff and its preflight checks;
+- npm lifecycle provisioning in `scripts/postinstall.js`;
+- `uv` asset selection, download, checksum verification, and extraction;
+- GitHub Release metadata synchronization and npm publishing workflows;
+- confinement of npm lifecycle installer-created files to the installed npm
+  package.
+
+The upstream agent, its tools and integrations, model providers, and actions a
+user authorizes the agent to perform are separate trust domains.
+
+## Security invariants
+
+The bridge is intended to preserve these properties:
+
+1. A missing package-local runtime never falls back to a system Python.
+2. Installer subprocesses use executable/argument arrays and do not evaluate
+   downloaded shell or PowerShell scripts.
+3. The downloaded `uv` archive must match a SHA-256 digest committed in this
+   repository before any executable is extracted.
+4. Release installation fetches the recorded Git tag and verifies that it
+   resolves to the full commit SHA recorded in `package.json`.
+5. npm lifecycle installer deletion/replacement targets must resolve inside
+   the npm package.
+6. Python, the virtual environment, the Git checkout, and temporary caches
+   created by npm lifecycle installation remain inside the npm package.
+7. `hermes update` is passed to the upstream console entrypoint unchanged; the
+   bridge does not falsely represent rolling source as npm-attested source.
+8. A release-channel reset returns tracked upstream source to the commit pinned
+   by npm without deleting untracked files with `git clean`.
+9. npm publication is blocked unless Windows, macOS, and Linux runtime smoke
+   jobs succeed for the same upstream tag, commit, and version.
+10. The upstream installer is never run during npm lifecycle provisioning.
+    A handoff requires `migrate upstream --yes`, uses the script from the
+    verified Release checkout, pins the same full commit, verifies the new
+    checkout/venv, and removes npm ownership only after that verification.
+
+A change that violates one of these invariants is security-relevant even if no
+exploit has yet been demonstrated.
+
+## Why `postinstall` exists
+
+Upstream stopped publishing new PyPI releases. The bridge therefore provisions
+the runtime during npm installation so this remains sufficient:
 
 ```bash
-hermes
-hermes-agent
+npm install --global hermes-agent
 ```
 
-The canonical npm package is `hermes-agent`. The package `hermesagent` is an
-alias manifest for users who search for the name without the hyphen. npm blocks
-publishing the unscoped `hermesagent` package because the name is too similar to
-`hermes-agent`; a scoped alias such as `@wyrtensi/hermesagent` can be published
-separately if needed.
+Lifecycle scripts execute with the installing user's permissions. Review the
+package before installation when that is not an acceptable trust decision; the
+audit procedure below avoids lifecycle execution.
 
-The `postinstall` step installs the matching Python package version so that a
-single command prepares the npm wrapper and the Python runtime:
+## Exact install behavior
 
-```bash
-npm install -g hermes-agent
-```
+`scripts/postinstall.js` and `lib/uv-installer.js`:
 
-Without `postinstall`, users would need to run a second command manually:
+1. validate the upstream repository, Release tag, and full commit SHA stored in
+   `package.json`;
+2. require Git and initialize a shallow package-local checkout;
+3. fetch the exact tag and verify its peeled commit before checkout;
+4. select a pinned Astral `uv` asset for Windows, macOS, or Linux, including
+   supported architecture and Linux libc variants;
+5. enforce compressed and extracted size limits, verify SHA-256, and extract
+   only `uv`/`uv.exe` with Node.js;
+6. provision managed Python 3.11 under `runtime/python/`;
+7. create `runtime/hermes-agent/venv/` and run
+   `uv sync --locked --extra all --no-dev` using upstream project configuration
+   and `uv.lock`;
+8. remove the temporary dependency cache and write a runtime identity marker.
 
-```bash
-python -m pip install --upgrade hermes-agent==<npm package version>
-```
+The installer does not invoke an upstream installer script, a system package
+manager, system Python/pip, `curl`, `tar`, PowerShell download evaluation, or
+`HERMES_NIX_BUILD`.
 
-## Exact behavior
+This statement applies to npm lifecycle provisioning. The optional upstream
+handoff described below intentionally invokes the official installer only
+after an explicit command and confirmation.
 
-The script is located at:
+## Update trust boundaries
+
+The bridge deliberately provides two update channels.
+
+### npm Release channel
+
+`hermes-npm check` reads the npm `latest` dist-tag from the canonical public
+registry. When a newer package exists, `hermes-npm update` installs the exact
+version that was checked from that same registry; it does not perform a second
+mutable `@latest` resolution. If the npm package is already current, the command
+resets a clean rolling checkout in place to the tag/commit pinned by the
+installed npm version. A dirty or damaged checkout is replaced transactionally
+with rollback where possible.
+
+npm integrity and provenance cover the bridge tarball and its pinned Release
+identity. They do not include dependencies downloaded during lifecycle
+execution.
+
+### Native rolling channel
+
+`hermes update` and `hermes update --check` run the unmodified upstream updater.
+The updater normally follows upstream `main`, mutates the package-local checkout
+and venv, and may install managed tools under `HERMES_HOME` (currently a managed
+`uv` under `HERMES_HOME/bin`). After a rolling update, npm provenance no longer
+attests to the live upstream source.
+
+Use `hermes-npm status --json` to distinguish `npm-release`, `upstream-native`,
+and `missing` runtime states. Use `hermes-npm update` to return to the npm
+Release boundary.
+
+### Upstream-managed handoff
+
+`hermes-npm migrate upstream` is a read-only plan. The `--yes` form transfers
+ownership to an upstream-managed installation. It does not download or
+evaluate the mutable installer endpoint: it runs `scripts/install.sh` or
+`scripts/install.ps1` from the package's verified, Release-pinned checkout and
+passes the same full commit with forced pinning, non-interactive mode, and
+setup skipped.
+
+Before execution the bridge requires an `npm-release` runtime, refuses an
+external target that is not a Git checkout when it already exists, validates
+an existing checkout's origin against the official upstream repository,
+refuses a dirty target, and refuses `HERMES_HOME` inside the npm package. After
+installation it verifies a clean exact Git HEAD and the platform venv console
+executable. npm uninstall is
+started only after these checks pass. The official installer's `path` stage is
+then re-run from the verified external checkout, which repairs command links
+if global npm removal shared their bin directory. If installation or
+verification fails, the npm package remains the active owner.
+
+The handoff is intentionally not side-by-side. The official installer may
+write outside the npm package, manage `HERMES_HOME/bin`, user PATH, Python,
+Node/browser prerequisites, configuration templates, and bundled skills. Its
+behavior is upstream's trust domain after the user explicitly elects to leave
+npm ownership. Interactive setup, gateway startup, and Desktop building are
+disabled by the bridge invocation.
+
+## Network and configuration boundaries
+
+Installation may contact:
+
+- GitHub for the pinned upstream tag/commit and pinned Astral `uv` asset;
+- Astral-managed Python distribution endpoints used by `uv`;
+- package indexes and artifact hosts referenced by upstream project
+  configuration and `uv.lock`.
+
+`hermes-npm check` and the update it authorizes are bound to
+`https://registry.npmjs.org`; npm can still honor applicable proxy, CA, and
+authentication settings. Git commands may honor user proxy, credential-helper,
+and CA configuration. Git is run with terminal credential prompts disabled and
+inherited `GIT_DIR`, `GIT_WORK_TREE`, and `GIT_INDEX_FILE` removed.
+
+Bootstrap operations disable ambient `uv` configuration so Python and cache
+locations remain package-local. Dependency synchronization intentionally uses
+the checked-out upstream project's `uv` configuration and lockfile.
+
+## Filesystem boundary
+
+npm installation creates or modifies only these package-local locations:
 
 ```text
-scripts/postinstall.js
+.hermes-agent-runtime.json
+.uv_bin/
+runtime/cache/
+runtime/python/
+runtime/hermes-agent/
 ```
 
-It performs these steps:
+It does not modify system Python, shell profiles, the global `PATH` beyond
+normal npm command shims, services, scheduled tasks, or Git configuration.
 
-1. Finds an available Python 3 interpreter.
-   - On Windows it tries `py -3`, then `python`, then `python3`.
-   - On macOS and Linux it tries `python3`, then `python`.
-2. Verifies that the interpreter is Python 3.11 or newer.
-3. Builds the pinned Python package spec from `package.json`, for example:
+Running upstream Hermes is different from installing the bridge. Upstream may
+write configuration, credentials, logs, backups, managed tools, and runtime
+state under `HERMES_HOME` and may start user-requested gateways or integrations.
+Uninstalling npm does not remove that user data.
 
-   ```bash
-   hermes-agent==<npm package version>
-   ```
+Do not run upstream `hermes uninstall` while npm owns the runtime. Upstream
+derives its project root from the running Python package, so in npm mode it can
+remove the checkout inside `node_modules` without removing the npm package or
+its marker. Use scope-appropriate `npm uninstall` instead. After a completed
+handoff, upstream owns the checkout and its native uninstaller is appropriate.
 
-4. Runs:
-
-   ```bash
-   python -m pip install --upgrade hermes-agent==<npm package version>
-   ```
-
-5. If that install fails, retries with:
-
-   ```bash
-   python -m pip install --upgrade --user hermes-agent==<npm package version>
-   ```
-
-6. Exits with a non-zero status if both attempts fail.
-
-The script also checks whether the related alias package is already installed
-globally. If `hermes-agent` is installed and a user installs `hermesagent`, or
-the other way around, it prints a warning explaining that both packages point to
-the same Hermes Agent runtime. It does not uninstall packages or modify npm
-global state.
-
-## What the script does not do
-
-The `postinstall` script does not:
-
-- read SSH keys, npm tokens, GitHub tokens, or other secrets
-- inspect project source files outside this npm package
-- upload telemetry or analytics
-- call custom remote shell scripts
-- run `curl | sh`, PowerShell downloads, or arbitrary downloaded code
-- modify shell profiles such as `.bashrc`, `.zshrc`, or PowerShell profiles
-- add startup items, services, scheduled tasks, or background daemons
-- change Git configuration
-- install npm packages dynamically
-
-Its network activity is limited to the normal package downloads performed by
-`pip` from the user's configured Python package index.
+For a project-local installation, `hermes-npm update` invokes `npm install` in
+the owning project and may update its dependency manifest and lockfile according
+to normal npm behavior.
 
 ## Publishing security
 
-The npm package is published by GitHub Actions through npm trusted publishing
-with OpenID Connect. The publish workflow is allowed to publish only from:
+The publish workflow:
 
-```text
-GitHub owner: wyrtensi
-GitHub repository: hermes-agent-npm
-Workflow file: npm-publish.yml
-Allowed npm action: npm publish
-```
+- polls the latest non-draft, non-prerelease upstream GitHub Release;
+- resolves annotated tags to their final commit and records the full SHA;
+- refuses to overwrite an npm version whose published tag/commit identity
+  differs;
+- fails if the upstream Release changes between prepare, smoke, and publish;
+- runs unit, package, native-update-check, and full runtime smoke tests on
+  Windows, macOS, and Linux;
+- pins third-party GitHub Actions by commit SHA;
+- grants `id-token: write` only to the publish job;
+- publishes through npm trusted publishing with provenance and no long-lived
+  npm token in the workflow.
 
-The workflow does not use a long-lived npm publish token. npm package settings
-should use `Require two-factor authentication and disallow tokens` so manual
-publishes require 2FA and traditional npm tokens cannot publish this package.
-Trusted publishing continues to work because it uses short-lived OIDC
-credentials issued for the configured workflow.
+Repository and npm settings should continue to protect the default branch,
+require review of workflow and checksum changes, require 2FA for maintainers,
+and disallow legacy publish tokens after trusted publishing is configured.
 
-## Why the package is version-pinned
+## Severity guidance
 
-The npm package version and the Python package version are kept in sync. The
-postinstall script installs the exact matching Python version:
+Examples of bridge findings that should be reported privately include:
 
-```bash
-hermes-agent==<npm package version>
-```
+- **Critical:** bypass of publish identity/provenance controls, or remote code
+  execution before pinned artifact/commit verification;
+- **High:** command injection, installer path escape or arbitrary overwrite,
+  checksum/tag-to-commit verification bypass, or credential exfiltration;
+- **Medium:** a reliable integrity downgrade, unsafe update-channel confusion,
+  or proxy/configuration handling that redirects executable content contrary to
+  documented verification;
+- **Low:** hardening gaps with limited impact, such as avoidable information
+  disclosure or denial of service requiring local access.
 
-This avoids silently installing a newer Python Hermes runtime than the npm
-wrapper was published for.
+Final severity depends on reachability, required privileges, user interaction,
+and impact; these examples are not automatic ratings.
 
-Release automation uses PyPI as the source of truth for the latest Hermes Agent
-version because this package installs the upstream Python package from PyPI.
-The upstream Git repository may update its source tree or tags on a different
-timeline than PyPI package publication.
+## Accepted risks and limitations
 
-Scheduled GitHub Actions runs are best-effort and can be delayed or skipped by
-GitHub. The publish workflow checks several times per hour, but manual
-`workflow_dispatch` remains available when a release needs to be published
-immediately.
+- npm lifecycle execution downloads and executes a verified `uv` binary and
+  installs code selected by the upstream lockfile. `--ignore-scripts` is the
+  supported opt-out.
+- The upstream repository, GitHub Release/tag administration, Astral release
+  process, Python artifact indexes, npm, GitHub Actions, and applicable local
+  Git/npm proxy, CA, credential, and authentication configuration remain
+  supply-chain trust dependencies.
+- The commit pin prevents tag retargeting from silently changing a published
+  npm version, but this bridge does not independently verify a Git tag's GPG or
+  SSH signature.
+- Native rolling updates intentionally follow a mutable upstream branch and
+  can move beyond reviewed Releases or create files outside the npm package
+  under `HERMES_HOME`.
+- Host compromise, malicious npm/Git configuration, or write access to the
+  installed package can invalidate local guarantees.
+- Only the latest npm bridge release is maintained; users must update to
+  receive bridge fixes.
+- Windows can prevent replacement while Hermes processes hold runtime files;
+  users should stop agents, gateways, and desktop processes before npm-channel
+  replacement.
+- The optional handoff expands the filesystem and tool-management boundary to
+  the official upstream installer. A failure after official verification but
+  during npm uninstall can temporarily leave both deployments present; remove
+  the npm package with the exact command shown in the handoff plan.
 
-## How to audit locally
+## Out of scope
 
-Review the install script:
+- vulnerabilities solely in upstream Hermes Agent, its bundled skills, or its
+  third-party dependencies, unless the bridge introduces or amplifies them;
+- model-provider behavior, prompt injection against an intentionally running
+  agent, and actions explicitly authorized through upstream tools;
+- vulnerabilities in npm, GitHub, Git, Astral infrastructure, Python package
+  indexes, or the operating system itself;
+- unsupported bridge versions and manually modified or forked runtime source.
+
+Reports that reveal a bridge-specific exploit path through an otherwise
+out-of-scope component are still welcome.
+
+## Auditing before installation
+
+Fetch and unpack without running lifecycle scripts:
 
 ```bash
 npm pack hermes-agent
-tar -xzf hermes-agent-*.tgz
-cat package/scripts/postinstall.js
-cat package/lib/python-launcher.js
+npm install --ignore-scripts ./hermes-agent-*.tgz
 ```
 
-Install without running lifecycle scripts:
+Review at minimum:
+
+```text
+package/package.json
+package/scripts/postinstall.js
+package/lib/uv-installer.js
+package/lib/python-launcher.js
+package/lib/npm-channel.js
+package/lib/upstream-migration.js
+```
+
+Compare `hermesAgent.upstreamGitTag` and `hermesAgent.upstreamCommit` with the
+official upstream Release. After review, provision with:
 
 ```bash
-npm install -g hermes-agent --ignore-scripts
+npm rebuild hermes-agent
+# or, for a global installation:
+npm rebuild --global hermes-agent
 ```
 
-Then install the Python runtime manually:
-
-```bash
-python -m pip install --upgrade hermes-agent==<npm package version>
-```
-
-## Why security scanners flag this package
-
-Some scanners flag every npm package with `preinstall`, `install`, or
-`postinstall` scripts because those scripts can execute code automatically.
-That warning is useful and should not be ignored.
-
-For this package, the install script is intentionally small and exists only to
-install the pinned Python Hermes Agent runtime. Users who prefer not to run npm
-lifecycle scripts can use `--ignore-scripts` and install the Python package
-manually.
+Security scanners are expected to flag the lifecycle script. Treat that as a
+prompt to review the explicit download, verification, and execution boundary,
+not as proof that the lifecycle step is safe or malicious by itself.

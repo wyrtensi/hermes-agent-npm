@@ -1,22 +1,21 @@
-# Disclaimer
+# Unofficial Package Disclaimer
 
-This is an unofficial npm bridge for Hermes Agent.
-
-Hermes Agent is developed by Nous Research:
+This repository and its npm packages are an unofficial bridge for the upstream
+Hermes Agent project:
 
 https://github.com/NousResearch/hermes-agent
 
-This project is not affiliated with, endorsed by, sponsored by, or maintained by
-Nous Research. References to Hermes Agent and Nous Research are provided only to
-identify the upstream open-source project that this npm package installs and
-launches.
+This project is not affiliated with, endorsed by, sponsored by, or maintained
+by Nous Research. References to Hermes Agent and Nous Research identify the
+upstream open-source project that this npm package checks out and launches.
 
-The npm package name is `hermes-agent` because it installs the upstream Python
-package with the same name. This repository does not claim ownership of the
-upstream Hermes Agent project, its source code, or its trademarks.
+Each npm release pins an official upstream GitHub Release tag and commit. Users
+may then run the native `hermes update` command, which intentionally moves the
+local checkout independently of npm and may advance it beyond an official
+Release. `hermes-npm update` returns the installation to the npm release
+channel.
 
-Any product names, project names, logos, or marks referenced here belong to
-their respective owners and are used only to identify the upstream project.
-
-This package is provided as-is, without warranty. Users should review the
-upstream project, its license, and this package's install behavior before use.
+The npm package name is `hermes-agent` because it bridges the upstream project
+with the same name. This repository does not claim ownership of upstream source
+code, project identity, or trademarks. All marks belong to their respective
+owners.

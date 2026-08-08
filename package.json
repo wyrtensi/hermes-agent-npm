@@ -1,17 +1,27 @@
 {
   "name": "hermes-agent",
-  "version": "0.15.2",
-  "description": "Unofficial npm bridge for Hermes Agent 0.15.2: The self-improving AI agent \u2014 creates skills from experience, improves them during use, and runs anywhere",
+  "version": "0.20.0",
+  "description": "Unofficial npm bridge for Hermes Agent 0.20.0: The self-improving AI agent \u2014 creates skills from experience, improves them during use, and runs anywhere",
   "license": "MIT",
+  "keywords": [
+    "hermes-agent",
+    "ai-agent",
+    "npm-bridge",
+    "uv",
+    "python",
+    "cross-platform"
+  ],
   "type": "commonjs",
   "bin": {
     "hermes": "bin/hermes.js",
-    "hermes-agent": "bin/hermes-agent.js"
+    "hermes-agent": "bin/hermes-agent.js",
+    "hermes-npm": "bin/hermes-npm.js"
   },
   "scripts": {
     "build:alias": "node scripts/build-alias-package.js",
     "postinstall": "node scripts/postinstall.js",
-    "test": "node --test"
+    "smoke": "node scripts/runtime-smoke.js",
+    "test": "node --test \"test/*.test.js\""
   },
   "repository": {
     "type": "git",
@@ -36,7 +46,11 @@
     "SECURITY.md"
   ],
   "hermesAgent": {
-    "pythonPackageVersion": "0.15.2",
-    "upstreamRepository": "nousresearch/hermes-agent"
+    "upstreamVersion": "0.20.0",
+    "upstreamRepository": "NousResearch/hermes-agent",
+    "upstreamGitTag": "v2026.8.3",
+    "upstreamCommit": "3c27eb6234bf91b8ceee9e9071591b31e9b148cb",
+    "pythonVersion": "3.11",
+    "runtimeDirectory": "runtime/hermes-agent"
   }
 }

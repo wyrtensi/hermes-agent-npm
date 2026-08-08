@@ -25,14 +25,15 @@ test("keeps canonical package name unchanged for unknown names", () => {
 });
 
 test("adds hermesagent binary only to the alias package", () => {
-  assert.deepEqual(getPackageBinNames("hermes-agent"), ["hermes", "hermes-agent"]);
-  assert.deepEqual(getPackageBinNames("hermesagent"), ["hermes", "hermes-agent", "hermesagent"]);
+  assert.deepEqual(getPackageBinNames("hermes-agent"), ["hermes", "hermes-agent", "hermes-npm"]);
+  assert.deepEqual(getPackageBinNames("hermesagent"), ["hermes", "hermes-agent", "hermes-npm", "hermesagent"]);
 });
 
 test("maps canonical package binaries to separate wrapper files", () => {
   assert.deepEqual(packageJson.bin, {
     hermes: "bin/hermes.js",
-    "hermes-agent": "bin/hermes-agent.js"
+    "hermes-agent": "bin/hermes-agent.js",
+    "hermes-npm": "bin/hermes-npm.js"
   });
 });
 
@@ -40,13 +41,18 @@ test("maps alias package binaries to wrapper files", () => {
   const binEntries = Object.fromEntries(
     getPackageBinNames("hermesagent").map((name) => [
       name,
-      name === "hermes" ? "bin/hermes.js" : "bin/hermes-agent.js"
+      name === "hermes"
+        ? "bin/hermes.js"
+        : name === "hermes-npm"
+          ? "bin/hermes-npm.js"
+          : "bin/hermes-agent.js"
     ])
   );
 
   assert.deepEqual(binEntries, {
     hermes: "bin/hermes.js",
     "hermes-agent": "bin/hermes-agent.js",
+    "hermes-npm": "bin/hermes-npm.js",
     hermesagent: "bin/hermes-agent.js"
   });
 });

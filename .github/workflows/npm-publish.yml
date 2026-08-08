@@ -10,16 +10,124 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 concurrency:
   group: npm-publish-hermes-agent
   cancel-in-progress: false
 
 jobs:
+  prepare:
+    name: Inspect latest upstream Release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      should_publish: ${{ steps.npm.outputs.should_publish }}
+      version: ${{ steps.sync.outputs.version }}
+      upstream_tag: ${{ steps.sync.outputs.upstream_tag }}
+      upstream_commit: ${{ steps.sync.outputs.upstream_commit }}
+
+    steps:
+      - name: Check out npm wrapper
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
+          package-manager-cache: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        with:
+          python-version: "3.13"
+
+      - name: Sync metadata from latest upstream GitHub Release
+        id: sync
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        shell: bash
+        run: python scripts/sync_upstream_version.py >> "$GITHUB_OUTPUT"
+
+      - name: Check npm publication state
+        id: npm
+        shell: bash
+        run: |
+          version="${{ steps.sync.outputs.version }}"
+          package="hermes-agent@$version"
+          if ! npm view "$package" version >/dev/null 2>&1; then
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          published_tag="$(npm view "$package" hermesAgent.upstreamGitTag --json | tr -d '"')"
+          published_commit="$(npm view "$package" hermesAgent.upstreamCommit --json | tr -d '"')"
+          if [ "$published_tag" != "${{ steps.sync.outputs.upstream_tag }}" ] || [ "$published_commit" != "${{ steps.sync.outputs.upstream_commit }}" ]; then
+            echo "Published $package maps to $published_tag/$published_commit, but latest Release maps to ${{ steps.sync.outputs.upstream_tag }}/${{ steps.sync.outputs.upstream_commit }}." >&2
+            echo "A new npm version is required; refusing to overwrite immutable release metadata." >&2
+            exit 1
+          fi
+
+          echo "should_publish=false" >> "$GITHUB_OUTPUT"
+          echo "$package already represents the latest upstream Release."
+
+  smoke:
+    name: Runtime smoke (${{ matrix.os }})
+    needs: prepare
+    if: needs.prepare.outputs.should_publish == 'true'
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+
+    steps:
+      - name: Check out npm wrapper
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: "24"
+
+      - name: Set up Python for release metadata sync
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        with:
+          python-version: "3.13"
+
+      - name: Sync release metadata
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          EXPECTED_UPSTREAM_COMMIT: ${{ needs.prepare.outputs.upstream_commit }}
+          EXPECTED_UPSTREAM_TAG: ${{ needs.prepare.outputs.upstream_tag }}
+          EXPECTED_UPSTREAM_VERSION: ${{ needs.prepare.outputs.version }}
+        run: python scripts/sync_upstream_version.py
+
+      - name: Test wrapper
+        run: npm test
+
+      - name: Provision isolated runtime
+        run: npm run postinstall
+
+      - name: Verify isolated runtime
+        run: npm run smoke
+
   publish:
     name: Publish hermes-agent to npm
+    needs:
+      - prepare
+      - smoke
+    if: always() && needs.prepare.outputs.should_publish == 'true' && needs.smoke.result == 'success'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
       id-token: write
@@ -42,43 +150,25 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Sync package version from PyPI Hermes Agent
-        id: sync
-        run: python scripts/sync_upstream_version.py >> "$GITHUB_OUTPUT"
+      - name: Sync release metadata
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          EXPECTED_UPSTREAM_COMMIT: ${{ needs.prepare.outputs.upstream_commit }}
+          EXPECTED_UPSTREAM_TAG: ${{ needs.prepare.outputs.upstream_tag }}
+          EXPECTED_UPSTREAM_VERSION: ${{ needs.prepare.outputs.version }}
+        run: python scripts/sync_upstream_version.py
 
-      - name: Check whether this version is already published
-        id: npm
+      - name: Verify synchronized release identity
         shell: bash
         run: |
-          if npm view "hermes-agent@${{ steps.sync.outputs.version }}" version >/dev/null 2>&1; then
-            echo "already_published=true" >> "$GITHUB_OUTPUT"
-            echo "hermes-agent@${{ steps.sync.outputs.version }} is already published."
-          else
-            echo "already_published=false" >> "$GITHUB_OUTPUT"
-          fi
+          test "$(node -p 'require("./package.json").version')" = "${{ needs.prepare.outputs.version }}"
+          test "$(node -p 'require("./package.json").hermesAgent.upstreamGitTag')" = "${{ needs.prepare.outputs.upstream_tag }}"
+          test "$(node -p 'require("./package.json").hermesAgent.upstreamCommit')" = "${{ needs.prepare.outputs.upstream_commit }}"
 
-      - name: Check whether matching Python package is published
-        id: pypi
-        if: steps.npm.outputs.already_published != 'true'
-        shell: bash
+      - name: Test and inspect package
         run: |
-          version="${{ steps.sync.outputs.version }}"
-          if python -c "import urllib.request; urllib.request.urlopen('https://pypi.org/pypi/hermes-agent/${version}/json', timeout=30).close()"; then
-            echo "available=true" >> "$GITHUB_OUTPUT"
-            echo "hermes-agent==$version is available on PyPI."
-          else
-            echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "hermes-agent==$version is not available on PyPI yet; skipping npm publish."
-          fi
+          npm test
+          npm pack --dry-run
 
-      - name: Test package
-        if: steps.npm.outputs.already_published != 'true' && steps.pypi.outputs.available == 'true'
-        run: npm test
-
-      - name: Verify npm package contents
-        if: steps.npm.outputs.already_published != 'true' && steps.pypi.outputs.available == 'true'
-        run: npm pack --dry-run
-
-      - name: Publish to npm with trusted publishing
-        if: steps.npm.outputs.already_published != 'true' && steps.pypi.outputs.available == 'true'
+      - name: Publish with npm trusted publishing
         run: npm publish --access public --provenance
