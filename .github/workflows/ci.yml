@@ -11,8 +11,9 @@ permissions:
 
 jobs:
   test:
-    name: Test npm wrapper
+    name: Test npm wrapper (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:
@@ -32,14 +33,6 @@ jobs:
         with:
           node-version: "24"
 
-      - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
-        with:
-          python-version: "3.13"
-
-      - name: Sync package version from PyPI Hermes Agent
-        run: python scripts/sync_upstream_version.py
-
       - name: Test package
         run: npm test
 
@@ -53,22 +46,30 @@ jobs:
         run: npm pack --dry-run
         working-directory: dist/hermesagent
 
-      - name: Verify npm command shims
+      - name: Verify canonical npm command shims
         shell: bash
         run: |
           tmp_dir="$(mktemp -d)"
           package_tarball="$(npm pack --json | node -e 'let input=""; process.stdin.on("data", chunk => input += chunk); process.stdin.on("end", () => console.log(JSON.parse(input)[0].filename));')"
           npm install --ignore-scripts --prefix "$tmp_dir" "./$package_tarball"
-          test -e "$tmp_dir/node_modules/.bin/hermes" || test -e "$tmp_dir/node_modules/.bin/hermes.cmd"
-          test -e "$tmp_dir/node_modules/.bin/hermes-agent" || test -e "$tmp_dir/node_modules/.bin/hermes-agent.cmd"
-          node -e "const pkg = require(process.argv[1]); if (pkg.bin.hermes !== 'bin/hermes.js' || pkg.bin['hermes-agent'] !== 'bin/hermes-agent.js') process.exit(1)" "$tmp_dir/node_modules/hermes-agent/package.json"
+          for command in hermes hermes-agent hermes-npm; do
+            test -e "$tmp_dir/node_modules/.bin/$command" || test -e "$tmp_dir/node_modules/.bin/$command.cmd"
+          done
+          package_root="$tmp_dir/node_modules/hermes-agent"
+          node "$package_root/bin/hermes-npm.js" methods --json | node -e 'let input=""; process.stdin.on("data", chunk => input += chunk); process.stdin.on("end", () => { const value=JSON.parse(input); if (value.recommendedForNpmUsers !== "npm-isolated") process.exit(1); });'
+          node "$package_root/bin/hermes-npm.js" migrate upstream --json | node -e 'let input=""; process.stdin.on("data", chunk => input += chunk); process.stdin.on("end", () => { const value=JSON.parse(input); if (!value.npmManagedInstall || value.mode !== "one-way-upstream-handoff") process.exit(1); });'
 
       - name: Verify alias npm command shims
         shell: bash
         run: |
           tmp_dir="$(mktemp -d)"
           npm install --ignore-scripts --prefix "$tmp_dir" ./dist/hermesagent
-          test -e "$tmp_dir/node_modules/.bin/hermes" || test -e "$tmp_dir/node_modules/.bin/hermes.cmd"
-          test -e "$tmp_dir/node_modules/.bin/hermes-agent" || test -e "$tmp_dir/node_modules/.bin/hermes-agent.cmd"
-          test -e "$tmp_dir/node_modules/.bin/hermesagent" || test -e "$tmp_dir/node_modules/.bin/hermesagent.cmd"
-          node -e "const pkg = require(process.argv[1]); if (pkg.bin.hermes !== 'bin/hermes.js' || pkg.bin['hermes-agent'] !== 'bin/hermes-agent.js' || pkg.bin.hermesagent !== 'bin/hermes-agent.js') process.exit(1)" "$tmp_dir/node_modules/hermesagent/package.json"
+          for command in hermes hermes-agent hermes-npm hermesagent; do
+            test -e "$tmp_dir/node_modules/.bin/$command" || test -e "$tmp_dir/node_modules/.bin/$command.cmd"
+          done
+
+      - name: Provision isolated runtime
+        run: npm run postinstall
+
+      - name: Verify isolated runtime and native update check
+        run: npm run smoke

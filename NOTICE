@@ -2,24 +2,26 @@ hermes-agent npm bridge
 Copyright (c) 2026 wyrtensi
 License: MIT
 
-This repository publishes an unofficial npm bridge for Hermes Agent.
-The bridge tracks the latest published Hermes Agent package on PyPI for npm
-release synchronization.
+This repository publishes an unofficial npm bridge for Hermes Agent. npm
+release synchronization follows the latest official non-draft,
+non-prerelease GitHub Release from the upstream project.
 
 Hermes Agent is developed by Nous Research.
 Upstream repository: https://github.com/NousResearch/hermes-agent
-Upstream package: hermes-agent on PyPI
+Upstream releases: https://github.com/NousResearch/hermes-agent/releases
 Upstream license: MIT
 Upstream copyright notice: Copyright (c) 2025 Nous Research
 
-This npm package does not claim ownership of Hermes Agent, the Hermes Agent
-source code, the Hermes Agent name, or Nous Research marks. It only provides a
-Node.js package wrapper that installs and launches the upstream Python package.
+This repository does not claim ownership of upstream source code, the Hermes
+Agent name, or Nous Research marks. It provides Node.js command shims,
+installation orchestration, release metadata, and an npm-specific update/status
+interface.
 
-The npm package includes wrapper code from this repository. It does not vendor
-or redistribute the upstream Hermes Agent source tree. During installation, the
-postinstall script asks pip to install the pinned upstream Python package
-version matching this npm package.
+The published npm tarball contains bridge code, not the upstream source tree.
+During installation, Git fetches the exact upstream Release tag and verifies
+that it resolves to the full commit SHA recorded in package.json. The installed
+checkout remains mutable because `hermes update` intentionally invokes the
+native upstream rolling updater.
 
 For the upstream license text, see:
 https://github.com/NousResearch/hermes-agent/blob/main/LICENSE

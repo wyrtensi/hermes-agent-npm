@@ -1,5 +1,8 @@
 node_modules/
 dist/
+.hermes-agent-runtime.json
+.uv_bin/
+runtime/
 *.tgz
 npm-debug.log*
 .DS_Store
