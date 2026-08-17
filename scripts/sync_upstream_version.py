@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+import base64
+import binascii
 import json
 import os
 import re
@@ -83,24 +85,44 @@ def fetch_project_metadata(commit):
     return version, description
 
 
-def main():
-    release = fetch_latest_release()
-    tag_name = release["tag_name"]
-    commit = resolve_tag_commit(tag_name)
-    version, description = fetch_project_metadata(commit)
+def validate_metadata(tag_name, commit, version, description):
+    if not TAG_NAME.fullmatch(tag_name):
+        raise ValueError(f"Invalid upstream tag: {tag_name!r}")
+    if not COMMIT_SHA.fullmatch(commit):
+        raise ValueError(f"Invalid upstream commit: {commit!r}")
+    if not SEMVER.fullmatch(version):
+        raise ValueError(f"Invalid upstream version: {version!r}")
+    if not isinstance(description, str) or not description.strip():
+        raise ValueError("Upstream description must be a nonempty UTF-8 string")
 
-    expected = {
-        "tag": os.environ.get("EXPECTED_UPSTREAM_TAG"),
-        "commit": os.environ.get("EXPECTED_UPSTREAM_COMMIT"),
-        "version": os.environ.get("EXPECTED_UPSTREAM_VERSION"),
-    }
-    actual = {"tag": tag_name, "commit": commit, "version": version}
-    for key, expected_value in expected.items():
-        if expected_value and expected_value != actual[key]:
-            raise ValueError(
-                f"Latest upstream Release changed during the workflow: "
-                f"expected {key} {expected_value!r}, received {actual[key]!r}"
-            )
+
+def expected_metadata():
+    names = [
+        "EXPECTED_UPSTREAM_TAG",
+        "EXPECTED_UPSTREAM_COMMIT",
+        "EXPECTED_UPSTREAM_VERSION",
+        "EXPECTED_UPSTREAM_DESCRIPTION_B64",
+    ]
+    values = {name: os.environ.get(name, "") for name in names}
+    missing = [name for name, value in values.items() if not value]
+    if missing:
+        raise ValueError(f"Offline metadata sync requires {', '.join(missing)}")
+    try:
+        description = base64.b64decode(
+            values["EXPECTED_UPSTREAM_DESCRIPTION_B64"], validate=True
+        ).decode("utf-8")
+    except (binascii.Error, UnicodeDecodeError) as error:
+        raise ValueError("EXPECTED_UPSTREAM_DESCRIPTION_B64 is not valid base64 UTF-8") from error
+    return (
+        values["EXPECTED_UPSTREAM_TAG"],
+        values["EXPECTED_UPSTREAM_COMMIT"],
+        values["EXPECTED_UPSTREAM_VERSION"],
+        description,
+    )
+
+
+def apply_metadata(tag_name, commit, version, description):
+    validate_metadata(tag_name, commit, version, description)
 
     package = json.loads(PACKAGE_JSON.read_text(encoding="utf-8"))
     package["version"] = version
@@ -119,10 +141,38 @@ def main():
     )
 
     PACKAGE_JSON.write_text(json.dumps(package, indent=2) + "\n", encoding="utf-8")
+
+
+def main():
+    if os.environ.get("SYNC_FROM_EXPECTED") == "1":
+        tag_name, commit, version, description = expected_metadata()
+        release_url = f"https://github.com/{UPSTREAM_REPOSITORY}/releases/tag/{tag_name}"
+    else:
+        release = fetch_latest_release()
+        tag_name = release["tag_name"]
+        commit = resolve_tag_commit(tag_name)
+        version, description = fetch_project_metadata(commit)
+        release_url = release.get("html_url", "")
+
+        expected = {
+            "tag": os.environ.get("EXPECTED_UPSTREAM_TAG"),
+            "commit": os.environ.get("EXPECTED_UPSTREAM_COMMIT"),
+            "version": os.environ.get("EXPECTED_UPSTREAM_VERSION"),
+        }
+        actual = {"tag": tag_name, "commit": commit, "version": version}
+        for key, expected_value in expected.items():
+            if expected_value and expected_value != actual[key]:
+                raise ValueError(
+                    f"Latest upstream Release changed during the workflow: "
+                    f"expected {key} {expected_value!r}, received {actual[key]!r}"
+                )
+
+    apply_metadata(tag_name, commit, version, description)
     print(f"version={version}")
     print(f"upstream_tag={tag_name}")
     print(f"upstream_commit={commit}")
-    print(f"upstream_release_url={release.get('html_url', '')}")
+    print(f"upstream_description_b64={base64.b64encode(description.encode('utf-8')).decode('ascii')}")
+    print(f"upstream_release_url={release_url}")
 
 
 if __name__ == "__main__":
