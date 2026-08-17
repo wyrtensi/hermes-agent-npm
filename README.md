@@ -343,7 +343,10 @@ then install the exact checked canonical version.
 
 1. Validates the upstream repository, Release tag, and full commit SHA stored
    in `package.json`.
-2. Requires Git and creates a shallow checkout of the exact tag.
+2. Requires Git and creates a shallow sparse checkout of the exact tag. The
+   upstream `contributors/` metadata tree is omitted because it is not runtime
+   input and can contain case-colliding paths that Windows and default macOS
+   filesystems cannot represent independently.
 3. Verifies that the fetched tag resolves to the committed SHA before checkout.
 4. Downloads the pinned Astral `uv` asset for the current OS, architecture, and
    Linux libc variant.
@@ -393,8 +396,10 @@ profiles, or global `PATH` beyond npm's normal binary shims. It does not change
 normal location and survive npm reinstall/uninstall.
 
 The package-local checkout is mutable by design because native updates are
-enabled. Removing the npm package removes this runtime, but it does not remove
-upstream user data.
+enabled. Its sparse-checkout configuration remains active during native Git
+updates; executable source and assets remain tracked normally, while only
+`contributors/` stays absent. Removing the npm package removes this runtime,
+but it does not remove upstream user data.
 
 The explicit upstream handoff is the exception to the package-local boundary:
 the pinned official installer creates the official checkout and may update
@@ -403,12 +408,14 @@ never run by `npm install` and requires `--yes`.
 
 ## Release automation
 
-The publish workflow runs on a schedule and through manual `workflow_dispatch`.
-It reads the latest non-draft, non-prerelease upstream GitHub Release and then:
+The publish workflow polls once per hour and also supports manual
+`workflow_dispatch`. Its prepare job reads the latest non-draft,
+non-prerelease upstream GitHub Release once and then:
 
 1. resolves annotated tags to their final commit SHA;
 2. reads `project.version` from `pyproject.toml` at that exact commit;
-3. updates npm package metadata;
+3. passes the validated tag, commit, version, and description to smoke and
+   publish jobs for deterministic offline metadata application;
 4. refuses to reuse an npm version if its published tag/commit mapping differs;
 5. runs wrapper tests, a native `hermes update --check`, and full runtime smoke
    tests on Windows, macOS, and Linux;

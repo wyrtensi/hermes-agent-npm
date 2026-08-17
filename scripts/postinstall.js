@@ -7,6 +7,7 @@ const path = require("node:path");
 const packageJson = require("../package.json");
 const { getRelatedPackageNames } = require("../lib/package-metadata");
 const { getRuntimeSourceDirectory, getVenvDirectory } = require("../lib/python-launcher");
+const { configureRuntimeSparseCheckout } = require("../lib/runtime-checkout");
 const { ensureUv, UV_VERSION } = require("../lib/uv-installer");
 
 const packageName = packageJson.name;
@@ -60,11 +61,15 @@ function cleanGitEnvironment() {
 }
 
 function run(command, args, options = {}) {
+  const hasInput = options.input !== undefined;
   const result = spawnSync(command, args, {
     cwd: options.cwd || packageRoot,
     env: options.env || process.env,
     encoding: options.capture ? "utf8" : undefined,
-    stdio: options.capture ? ["ignore", "pipe", "pipe"] : "inherit",
+    input: options.input,
+    stdio: options.capture
+      ? ["ignore", "pipe", "pipe"]
+      : hasInput ? ["pipe", "inherit", "inherit"] : "inherit",
     windowsHide: true
   });
   if (result.error) throw result.error;
@@ -148,6 +153,7 @@ function createPinnedCheckout(targetDirectory) {
   git(["-C", targetDirectory, "config", "core.autocrlf", "false"]);
   git(["-C", targetDirectory, "config", "core.longpaths", "true"]);
   git(["-C", targetDirectory, "remote", "add", "origin", origin]);
+  configureRuntimeSparseCheckout(targetDirectory, git);
   fetchAndVerifyPinnedTag(targetDirectory);
 
   git(["-C", targetDirectory, "checkout", "--detach", upstreamCommit]);

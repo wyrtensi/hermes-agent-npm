@@ -3,7 +3,7 @@ name: Publish npm package
 on:
   workflow_dispatch:
   schedule:
-    - cron: "7,22,37,52 * * * *"
+    - cron: "17 * * * *"
   push:
     tags:
       - "npm-v*"
@@ -25,6 +25,7 @@ jobs:
       version: ${{ steps.sync.outputs.version }}
       upstream_tag: ${{ steps.sync.outputs.upstream_tag }}
       upstream_commit: ${{ steps.sync.outputs.upstream_commit }}
+      upstream_description_b64: ${{ steps.sync.outputs.upstream_description_b64 }}
 
     steps:
       - name: Check out npm wrapper
@@ -105,8 +106,9 @@ jobs:
 
       - name: Sync release metadata
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          SYNC_FROM_EXPECTED: "1"
           EXPECTED_UPSTREAM_COMMIT: ${{ needs.prepare.outputs.upstream_commit }}
+          EXPECTED_UPSTREAM_DESCRIPTION_B64: ${{ needs.prepare.outputs.upstream_description_b64 }}
           EXPECTED_UPSTREAM_TAG: ${{ needs.prepare.outputs.upstream_tag }}
           EXPECTED_UPSTREAM_VERSION: ${{ needs.prepare.outputs.version }}
         run: python scripts/sync_upstream_version.py
@@ -152,8 +154,9 @@ jobs:
 
       - name: Sync release metadata
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          SYNC_FROM_EXPECTED: "1"
           EXPECTED_UPSTREAM_COMMIT: ${{ needs.prepare.outputs.upstream_commit }}
+          EXPECTED_UPSTREAM_DESCRIPTION_B64: ${{ needs.prepare.outputs.upstream_description_b64 }}
           EXPECTED_UPSTREAM_TAG: ${{ needs.prepare.outputs.upstream_tag }}
           EXPECTED_UPSTREAM_VERSION: ${{ needs.prepare.outputs.version }}
         run: python scripts/sync_upstream_version.py

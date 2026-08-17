@@ -11,6 +11,8 @@ const {
   getInstallMethods,
   getReleaseUpdateArgs,
   getReleaseUpdateCommand,
+  isReleasePinned,
+  parseGitStatusPorcelain,
   pathsReferToSameInstallLocation
 } = require("../lib/npm-channel");
 
@@ -116,4 +118,19 @@ test("compares global install paths case-insensitively only on Windows", () => {
   assert.equal(pathsReferToSameInstallLocation(mixedCasePath, lowerCasePath, "win32"), true);
   assert.equal(pathsReferToSameInstallLocation(mixedCasePath, lowerCasePath, "linux"), false);
   assert.equal(pathsReferToSameInstallLocation("/opt/node_modules", "/opt/node_modules", "darwin"), true);
+});
+
+test("reports every tracked runtime path returned by Git porcelain status", () => {
+  assert.deepEqual(parseGitStatusPorcelain(""), []);
+  assert.deepEqual(
+    parseGitStatusPorcelain(" M contributors/emails/example\r\nR  old.py -> new.py\n"),
+    [" M contributors/emails/example", "R  old.py -> new.py"]
+  );
+});
+
+test("requires a successful clean Git status before reporting the release channel", () => {
+  const commit = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  assert.equal(isReleasePinned(true, commit, commit, []), true);
+  assert.equal(isReleasePinned(true, commit, commit, [" M runtime.py"]), false);
+  assert.equal(isReleasePinned(true, commit, commit, null), false);
 });
