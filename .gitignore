@@ -6,3 +6,4 @@ runtime/
 *.tgz
 npm-debug.log*
 .DS_Store
+.worktrees/
