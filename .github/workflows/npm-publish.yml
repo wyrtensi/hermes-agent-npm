@@ -3,7 +3,7 @@ name: Publish npm package
 on:
   workflow_dispatch:
   schedule:
-    - cron: "7,22,37,52 * * * *"
+    - cron: "17 * * * *"
   push:
     tags:
       - "npm-v*"

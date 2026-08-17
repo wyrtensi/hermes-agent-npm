@@ -11,7 +11,9 @@ const {
   getInstallMethods,
   getReleaseUpdateArgs,
   getReleaseUpdateCommand,
-  pathsReferToSameInstallLocation
+  parseGitStatusPorcelain,
+  pathsReferToSameInstallLocation,
+  readRuntimeStatus
 } = require("../lib/npm-channel");
 
 test("finds the project owning a regular node_modules directory", () => {
@@ -116,4 +118,19 @@ test("compares global install paths case-insensitively only on Windows", () => {
   assert.equal(pathsReferToSameInstallLocation(mixedCasePath, lowerCasePath, "win32"), true);
   assert.equal(pathsReferToSameInstallLocation(mixedCasePath, lowerCasePath, "linux"), false);
   assert.equal(pathsReferToSameInstallLocation("/opt/node_modules", "/opt/node_modules", "darwin"), true);
+});
+
+test("reports every tracked runtime path returned by Git porcelain status", () => {
+  assert.deepEqual(parseGitStatusPorcelain(""), []);
+  assert.deepEqual(
+    parseGitStatusPorcelain(" M contributors/emails/example\r\nR  old.py -> new.py\n"),
+    [" M contributors/emails/example", "R  old.py -> new.py"]
+  );
+});
+
+test("reports unavailable Git status without treating it as a clean release", () => {
+  const status = readRuntimeStatus();
+  assert.equal(status.runtimeDirty, null);
+  assert.equal(status.runtimeDirtyPaths, null);
+  assert.notEqual(status.runtimeChannel, "npm-release");
 });

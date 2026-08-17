@@ -100,7 +100,8 @@ audit procedure below avoids lifecycle execution.
 
 1. validate the upstream repository, Release tag, and full commit SHA stored in
    `package.json`;
-2. require Git and initialize a shallow package-local checkout;
+2. require Git and initialize a shallow package-local sparse checkout that
+   omits only the non-runtime upstream `contributors/` metadata tree;
 3. fetch the exact tag and verify its peeled commit before checkout;
 4. select a pinned Astral `uv` asset for Windows, macOS, or Linux, including
    supported architecture and Linux libc variants;
@@ -111,6 +112,11 @@ audit procedure below avoids lifecycle execution.
    `uv sync --locked --extra all --no-dev` using upstream project configuration
    and `uv.lock`;
 8. remove the temporary dependency cache and write a runtime identity marker.
+
+The sparse boundary prevents case-colliding contributor metadata from making
+Windows or default macOS checkouts dirty. It does not ignore or omit executable
+runtime source; tracked changes outside `contributors/` still fail the clean
+Release check.
 
 The installer does not invoke an upstream installer script, a system package
 manager, system Python/pip, `curl`, `tar`, PowerShell download evaluation, or
@@ -230,11 +236,12 @@ to normal npm behavior.
 
 The publish workflow:
 
-- polls the latest non-draft, non-prerelease upstream GitHub Release;
+- polls the latest non-draft, non-prerelease upstream GitHub Release hourly;
 - resolves annotated tags to their final commit and records the full SHA;
 - refuses to overwrite an npm version whose published tag/commit identity
   differs;
-- fails if the upstream Release changes between prepare, smoke, and publish;
+- resolves Release identity once in the prepare job and passes that immutable
+  identity to smoke and publish jobs without repeating mutable latest lookups;
 - runs unit, package, native-update-check, and full runtime smoke tests on
   Windows, macOS, and Linux;
 - pins third-party GitHub Actions by commit SHA;
