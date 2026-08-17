@@ -34,6 +34,7 @@ for (const relativePath of [
   "lib/npm-channel.js",
   "lib/package-metadata.js",
   "lib/python-launcher.js",
+  "lib/runtime-checkout.js",
   "lib/upstream-migration.js",
   "lib/uv-installer.js",
   "scripts/postinstall.js"

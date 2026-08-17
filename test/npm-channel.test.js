@@ -11,9 +11,9 @@ const {
   getInstallMethods,
   getReleaseUpdateArgs,
   getReleaseUpdateCommand,
+  isReleasePinned,
   parseGitStatusPorcelain,
-  pathsReferToSameInstallLocation,
-  readRuntimeStatus
+  pathsReferToSameInstallLocation
 } = require("../lib/npm-channel");
 
 test("finds the project owning a regular node_modules directory", () => {
@@ -128,9 +128,9 @@ test("reports every tracked runtime path returned by Git porcelain status", () =
   );
 });
 
-test("reports unavailable Git status without treating it as a clean release", () => {
-  const status = readRuntimeStatus();
-  assert.equal(status.runtimeDirty, null);
-  assert.equal(status.runtimeDirtyPaths, null);
-  assert.notEqual(status.runtimeChannel, "npm-release");
+test("requires a successful clean Git status before reporting the release channel", () => {
+  const commit = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  assert.equal(isReleasePinned(true, commit, commit, []), true);
+  assert.equal(isReleasePinned(true, commit, commit, [" M runtime.py"]), false);
+  assert.equal(isReleasePinned(true, commit, commit, null), false);
 });

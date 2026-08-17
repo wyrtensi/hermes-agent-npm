@@ -74,3 +74,26 @@ test("refuses incomplete prepared Release metadata without changing package.json
     execution.cleanup();
   }
 });
+
+for (const [name, environment, expectedError] of [
+  ["tag", { EXPECTED_UPSTREAM_TAG: "not-a-tag" }, /Invalid upstream tag/],
+  ["commit", { EXPECTED_UPSTREAM_COMMIT: "abc123" }, /Invalid upstream commit/],
+  ["version", { EXPECTED_UPSTREAM_VERSION: "latest" }, /Invalid upstream version/],
+  ["base64", { EXPECTED_UPSTREAM_DESCRIPTION_B64: "%%%" }, /not valid base64 UTF-8/],
+  [
+    "UTF-8 description",
+    { EXPECTED_UPSTREAM_DESCRIPTION_B64: Buffer.from([0xff]).toString("base64") },
+    /not valid base64 UTF-8/
+  ]
+]) {
+  test(`refuses malformed prepared Release ${name} without changing package.json`, () => {
+    const execution = runOfflineSync(environment);
+    try {
+      assert.notEqual(execution.result.status, 0);
+      assert.match(execution.result.stderr, expectedError);
+      assert.deepEqual(JSON.parse(fs.readFileSync(execution.packagePath, "utf8")), fixturePackage());
+    } finally {
+      execution.cleanup();
+    }
+  });
+}

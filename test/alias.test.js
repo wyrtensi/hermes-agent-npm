@@ -1,4 +1,7 @@
 const assert = require("node:assert/strict");
+const { spawnSync } = require("node:child_process");
+const fs = require("node:fs");
+const path = require("node:path");
 const test = require("node:test");
 
 const {
@@ -55,4 +58,15 @@ test("maps alias package binaries to wrapper files", () => {
     "hermes-npm": "bin/hermes-npm.js",
     hermesagent: "bin/hermes-agent.js"
   });
+});
+
+test("ships every helper required by the alias postinstall script", () => {
+  const root = path.resolve(__dirname, "..");
+  const result = spawnSync(process.execPath, [path.join(root, "scripts", "build-alias-package.js")], {
+    cwd: root,
+    encoding: "utf8",
+    windowsHide: true
+  });
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(fs.existsSync(path.join(root, "dist", "hermesagent", "lib", "runtime-checkout.js")), true);
 });
