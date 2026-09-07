@@ -6,6 +6,7 @@
 [![Upstream release](https://img.shields.io/github/v/release/NousResearch/hermes-agent?label=upstream&logo=github)](https://github.com/NousResearch/hermes-agent/releases)
 [![Node.js 20+](https://img.shields.io/badge/Node.js-20%2B-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![npm provenance](https://img.shields.io/badge/npm%20provenance-enabled-brightgreen)](https://docs.npmjs.com/generating-provenance-statements)
+[![Telegram chat](https://img.shields.io/badge/Telegram-chat-26A5E4?logo=telegram&logoColor=white)](https://t.me/+AoFg5hgLSlIyYTAy)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 > [!IMPORTANT]
