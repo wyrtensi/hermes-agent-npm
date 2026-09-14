@@ -246,7 +246,10 @@ function syncRuntime(uvExecutable) {
   }
 
   console.log("Synchronizing the upstream lockfile into the isolated environment...");
-  run(uvExecutable, ["sync", "--locked", "--extra", "all", "--no-dev"], {
+  // --frozen installs exactly what the upstream uv.lock records (hashes included)
+  // without re-validating it against pyproject.toml. That freshness check depends
+  // on the uv version and can reject a Release lockfile that upstream CI accepts.
+  run(uvExecutable, ["sync", "--frozen", "--extra", "all", "--no-dev"], {
     cwd: sourceDirectory,
     env: uvSyncEnvironment()
   });

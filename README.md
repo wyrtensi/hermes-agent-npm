@@ -355,7 +355,7 @@ then install the exact checked canonical version.
    `lib/uv-installer.js` and extracts only the executable.
 6. Creates an `uv`-managed Python 3.11 installation and `venv/` inside the
    upstream checkout.
-7. Runs `uv sync --locked --extra all --no-dev` using upstream project
+7. Runs `uv sync --frozen --extra all --no-dev` using upstream project
    configuration and `uv.lock`.
 8. Deletes the temporary dependency cache and writes a runtime marker.
 

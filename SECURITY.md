@@ -109,7 +109,7 @@ audit procedure below avoids lifecycle execution.
    only `uv`/`uv.exe` with Node.js;
 6. provision managed Python 3.11 under `runtime/python/`;
 7. create `runtime/hermes-agent/venv/` and run
-   `uv sync --locked --extra all --no-dev` using upstream project configuration
+   `uv sync --frozen --extra all --no-dev` using upstream project configuration
    and `uv.lock`;
 8. remove the temporary dependency cache and write a runtime identity marker.
 
