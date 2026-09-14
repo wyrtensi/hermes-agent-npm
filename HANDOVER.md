@@ -24,7 +24,7 @@ Git base: `c020305cd3ff4c47c2b1fa1e44a2ea4d5695ccf0`.
   `v2026.8.3` and peeled commit
   `3c27eb6234bf91b8ceee9e9071591b31e9b148cb`.
 - Checksum-pinned `uv` 0.12.13 provisions package-local Python 3.11 and runs
-  upstream `uv sync --locked --extra all --no-dev`.
+  upstream `uv sync --frozen --extra all --no-dev`.
 - No upstream installer script, PyPI Hermes package, system-Python fallback,
   shell pipeline, or `HERMES_NIX_BUILD` bypass is used.
 - The only upstream-installer path is the separately confirmed handoff. It is

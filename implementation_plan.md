@@ -16,7 +16,7 @@
    commit behind annotated tags.
 2. `postinstall` creates a real Git checkout at that exact commit.
 3. A pinned Astral `uv` binary provisions managed Python 3.11.
-4. `uv sync --locked --extra all --no-dev` installs the editable upstream
+4. `uv sync --frozen --extra all --no-dev` installs the editable upstream
    project into `runtime/hermes-agent/venv`.
 5. npm shims execute upstream console entrypoints directly.
 6. `hermes update` is not parsed or replaced by the bridge.
