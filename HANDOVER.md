@@ -23,7 +23,7 @@ Git base: `c020305cd3ff4c47c2b1fa1e44a2ea4d5695ccf0`.
 - Installation uses a shallow Git checkout pinned to upstream tag
   `v2026.8.3` and peeled commit
   `3c27eb6234bf91b8ceee9e9071591b31e9b148cb`.
-- Checksum-pinned `uv` 0.12.2 provisions package-local Python 3.11 and runs
+- Checksum-pinned `uv` 0.12.13 provisions package-local Python 3.11 and runs
   upstream `uv sync --locked --extra all --no-dev`.
 - No upstream installer script, PyPI Hermes package, system-Python fallback,
   shell pipeline, or `HERMES_NIX_BUILD` bypass is used.
@@ -101,7 +101,7 @@ using `--ignore-scripts`.
 - Earlier end-to-end checks also passed for first-time Windows provisioning,
   native `hermes update --check`, rolling drift detection, release reset, and
   post-reset smoke.
-- All 18 committed `uv` checksums were compared with Astral's official 0.12.2
+- All 18 committed `uv` checksums were compared with Astral's official 0.12.13
   release checksums.
 
 ## Required before publication
