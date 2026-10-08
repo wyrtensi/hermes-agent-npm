@@ -237,6 +237,19 @@ Running `npm rebuild` for the same package version instead
 preserves an existing native-updated checkout and only resynchronizes its
 environment.
 
+### Python 3.14 in release 0.21.6
+
+Upstream `v0.21.6` locks dependencies for Python 3.14. The corresponding npm
+release downloads a managed Python 3.14 runtime with `uv`; a system Python 3.14
+installation is not required.
+
+If an existing npm installation uses Python 3.11, run `hermes-npm update` after
+`hermes-agent@0.21.6` is published. Updating the npm package replaces its
+package-local checkout and venv, then creates a new Python 3.14 venv from the
+upstream lockfile. Configuration, credentials, sessions, and other data under
+`HERMES_HOME` remain in place. Rebuilding the old npm version does not perform
+this transition.
+
 For automation and agents, `hermes-npm status --json` is the canonical
 machine-readable note. Child processes also receive:
 
