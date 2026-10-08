@@ -72,10 +72,10 @@ test("builds a pinned non-interactive Windows installer invocation", () => {
   assert.deepEqual(plan.npmUninstall.args, ["uninstall", "--global", "hermes-agent"]);
   assert.equal(plan.finalizePath.command, "powershell.exe");
   assert.ok(plan.finalizePath.args.includes("-Stage"));
-  assert.ok(plan.finalizePath.args.includes("path"));
+  assert.ok(plan.finalizePath.args.includes("products"));
 });
 
-test("re-applies only the official POSIX path stage after npm removal", () => {
+test("re-applies the official POSIX products stage after npm removal", () => {
   const plan = {
     installDirectory: "/home/example/.hermes/hermes-agent",
     hermesHome: "/home/example/.hermes"
@@ -84,7 +84,7 @@ test("re-applies only the official POSIX path stage after npm removal", () => {
     command: "bash",
     args: [
       "/home/example/.hermes/hermes-agent/scripts/install.sh",
-      "--stage", "path",
+      "--stage", "products",
       "--non-interactive",
       "--dir", plan.installDirectory,
       "--hermes-home", plan.hermesHome
@@ -130,7 +130,7 @@ test("verifies the official target before starting npm removal", async () => {
     upstreamCommit: commit,
     installer: { command: "bash", args: [__filename] },
     npmUninstall: { command: "npm", args: ["uninstall", "hermes-agent"] },
-    finalizePath: { command: "bash", args: ["--stage", "path"] },
+    finalizePath: { command: "bash", args: ["--stage", "products"] },
     npmWorkingDirectory: temporaryRoot
   };
 
@@ -232,7 +232,7 @@ test("finalizes official command ownership even when npm removal reports failure
     upstreamCommit: "d".repeat(40),
     installer: { command: "bash", args: [__filename] },
     npmUninstall: { command: "npm", args: ["uninstall", "hermes-agent"] },
-    finalizePath: { command: "bash", args: ["--stage", "path"] },
+    finalizePath: { command: "bash", args: ["--stage", "products"] },
     npmWorkingDirectory: temporaryRoot
   };
 

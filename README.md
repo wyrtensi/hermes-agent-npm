@@ -108,7 +108,8 @@ upstream `HERMES_HOME`, as they still do now.
 Starting with `0.20.0`:
 
 - PyPI is not used to install Hermes Agent itself;
-- `uv` downloads an isolated managed Python 3.11 runtime;
+- `uv` downloads the isolated managed Python version pinned in the npm package
+  metadata;
 - upstream source is checked out at the exact GitHub Release tag and commit;
 - dependencies are synchronized from upstream `uv.lock`;
 - `hermes update` remains the native upstream rolling updater;
@@ -278,8 +279,8 @@ The handoff:
 5. verifies the resulting Git commit and venv `hermes` executable;
 6. only after successful verification, removes the npm package in its detected
    local or global scope;
-7. re-runs only the official installer's idempotent `path` stage from the new
-   checkout, so a global npm uninstall cannot delete an official launcher when
+7. re-runs the official installer's `products` stage from the new checkout,
+   so a global npm uninstall cannot delete an official launcher when
    both installations use the same bin directory.
 
 Configuration, credentials, sessions, memories, skills, and other user state
@@ -353,8 +354,8 @@ then install the exact checked canonical version.
    Linux libc variant.
 5. Verifies the `uv` archive against a SHA-256 digest committed in
    `lib/uv-installer.js` and extracts only the executable.
-6. Creates an `uv`-managed Python 3.11 installation and `venv/` inside the
-   upstream checkout.
+6. Creates an `uv`-managed Python installation at the version pinned in the npm
+   package metadata and `venv/` inside the upstream checkout.
 7. Runs `uv sync --frozen --extra all --no-dev` using upstream project
    configuration and `uv.lock`.
 8. Deletes the temporary dependency cache and writes a runtime marker.
@@ -414,7 +415,8 @@ The publish workflow polls once per hour and also supports manual
 non-prerelease upstream GitHub Release once and then:
 
 1. resolves annotated tags to their final commit SHA;
-2. reads `project.version` from `pyproject.toml` at that exact commit;
+2. reads `project.version` from `pyproject.toml` at that exact commit, or uses
+   the semantic Release tag when upstream leaves `project.version` at `0.0.0`;
 3. passes the validated tag, commit, version, and description to smoke and
    publish jobs for deterministic offline metadata application;
 4. refuses to reuse an npm version if its published tag/commit mapping differs;

@@ -52,8 +52,8 @@ const installerManifest = process.platform === "win32"
       [path.join(sourceDirectory, "scripts", "install.sh"), "--manifest"],
       { cwd: packageRoot }
     ));
-if (!installerManifest.stages?.some((stage) => stage.name === "path")) {
-  throw new Error("Pinned upstream installer does not expose the required path stage.");
+if (!installerManifest.stages?.some((stage) => stage.name === "products")) {
+  throw new Error("Pinned upstream installer does not expose the required products stage.");
 }
 
 for (const requiredPath of [path.join(sourceDirectory, ".git"), python, hermes]) {

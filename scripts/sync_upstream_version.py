@@ -85,6 +85,15 @@ def fetch_project_metadata(commit):
     return version, description
 
 
+def release_version(tag_name, project_version):
+    if project_version != "0.0.0":
+        return project_version
+    tag_version = tag_name.removeprefix("v")
+    if not SEMVER.fullmatch(tag_version):
+        raise ValueError("Upstream project.version is 0.0.0 and Release tag is not valid npm semver")
+    return tag_version
+
+
 def validate_metadata(tag_name, commit, version, description):
     if not TAG_NAME.fullmatch(tag_name):
         raise ValueError(f"Invalid upstream tag: {tag_name!r}")
@@ -135,7 +144,7 @@ def apply_metadata(tag_name, commit, version, description):
             "upstreamRepository": UPSTREAM_REPOSITORY,
             "upstreamGitTag": tag_name,
             "upstreamCommit": commit,
-            "pythonVersion": "3.11",
+            "pythonVersion": "3.14",
             "runtimeDirectory": "runtime/hermes-agent",
         }
     )
@@ -146,12 +155,14 @@ def apply_metadata(tag_name, commit, version, description):
 def main():
     if os.environ.get("SYNC_FROM_EXPECTED") == "1":
         tag_name, commit, version, description = expected_metadata()
+        version = release_version(tag_name, version)
         release_url = f"https://github.com/{UPSTREAM_REPOSITORY}/releases/tag/{tag_name}"
     else:
         release = fetch_latest_release()
         tag_name = release["tag_name"]
         commit = resolve_tag_commit(tag_name)
         version, description = fetch_project_metadata(commit)
+        version = release_version(tag_name, version)
         release_url = release.get("html_url", "")
 
         expected = {
