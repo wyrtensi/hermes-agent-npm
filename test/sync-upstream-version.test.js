@@ -56,9 +56,26 @@ test("applies complete prepared Release metadata without rediscovering GitHub la
       upstreamRepository: "NousResearch/hermes-agent",
       upstreamGitTag: "v2099.1.1",
       upstreamCommit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      pythonVersion: "3.11",
+      pythonVersion: "3.14",
+      installerFinalizeStage: "products",
       runtimeDirectory: "runtime/hermes-agent"
     });
+  } finally {
+    execution.cleanup();
+  }
+});
+
+test("uses the semantic Release tag when upstream project.version is a placeholder", () => {
+  const execution = runOfflineSync({
+    EXPECTED_UPSTREAM_TAG: "v0.21.6",
+    EXPECTED_UPSTREAM_VERSION: "0.0.0"
+  });
+  try {
+    assert.equal(execution.result.status, 0, execution.result.stderr);
+    const packageJson = JSON.parse(fs.readFileSync(execution.packagePath, "utf8"));
+    assert.equal(packageJson.version, "0.21.6");
+    assert.equal(packageJson.hermesAgent.upstreamVersion, "0.21.6");
+    assert.match(execution.result.stdout, /^version=0\.21\.6$/m);
   } finally {
     execution.cleanup();
   }
