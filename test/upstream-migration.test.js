@@ -72,7 +72,15 @@ test("builds a pinned non-interactive Windows installer invocation", () => {
   assert.deepEqual(plan.npmUninstall.args, ["uninstall", "--global", "hermes-agent"]);
   assert.equal(plan.finalizePath.command, "powershell.exe");
   assert.ok(plan.finalizePath.args.includes("-Stage"));
-  assert.ok(plan.finalizePath.args.includes("path"));
+  assert.ok(plan.finalizePath.args.includes(plan.installerFinalizeStage));
+});
+
+test("defaults to the legacy path stage without release stage metadata", () => {
+  const invocation = getUpstreamPathInvocation({
+    installDirectory: "C:\\Users\\Example\\hermes-agent",
+    hermesHome: "C:\\Users\\Example"
+  }, "win32");
+  assert.ok(invocation.args.includes("path"));
 });
 
 test("re-applies the official POSIX products stage after npm removal", () => {
