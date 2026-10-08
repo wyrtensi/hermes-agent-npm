@@ -72,13 +72,14 @@ test("builds a pinned non-interactive Windows installer invocation", () => {
   assert.deepEqual(plan.npmUninstall.args, ["uninstall", "--global", "hermes-agent"]);
   assert.equal(plan.finalizePath.command, "powershell.exe");
   assert.ok(plan.finalizePath.args.includes("-Stage"));
-  assert.ok(plan.finalizePath.args.includes("products"));
+  assert.ok(plan.finalizePath.args.includes("path"));
 });
 
 test("re-applies the official POSIX products stage after npm removal", () => {
   const plan = {
     installDirectory: "/home/example/.hermes/hermes-agent",
-    hermesHome: "/home/example/.hermes"
+    hermesHome: "/home/example/.hermes",
+    installerFinalizeStage: "products"
   };
   assert.deepEqual(getUpstreamPathInvocation(plan, "linux"), {
     command: "bash",

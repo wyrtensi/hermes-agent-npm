@@ -145,6 +145,7 @@ def apply_metadata(tag_name, commit, version, description):
             "upstreamGitTag": tag_name,
             "upstreamCommit": commit,
             "pythonVersion": "3.14",
+            "installerFinalizeStage": "products",
             "runtimeDirectory": "runtime/hermes-agent",
         }
     )

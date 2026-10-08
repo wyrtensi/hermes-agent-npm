@@ -57,6 +57,7 @@ test("applies complete prepared Release metadata without rediscovering GitHub la
       upstreamGitTag: "v2099.1.1",
       upstreamCommit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       pythonVersion: "3.14",
+      installerFinalizeStage: "products",
       runtimeDirectory: "runtime/hermes-agent"
     });
   } finally {

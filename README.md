@@ -279,7 +279,7 @@ The handoff:
 5. verifies the resulting Git commit and venv `hermes` executable;
 6. only after successful verification, removes the npm package in its detected
    local or global scope;
-7. re-runs the official installer's `products` stage from the new checkout,
+7. re-runs the release's official command publication stage from the new checkout,
    so a global npm uninstall cannot delete an official launcher when
    both installations use the same bin directory.
 
