@@ -10,7 +10,7 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-UPSTREAM_REPOSITORY = "NousResearch/hermes-agent"
+UPSTREAM_REPOSITORY = "NastechResearch/nastech-agent"
 GITHUB_API = f"https://api.github.com/repos/{UPSTREAM_REPOSITORY}"
 PACKAGE_JSON = Path("package.json")
 SEMVER = re.compile(
@@ -24,7 +24,7 @@ COMMIT_SHA = re.compile(r"[0-9a-f]{40}")
 def request_headers():
     headers = {
         "Accept": "application/vnd.github+json",
-        "User-Agent": "hermes-agent-npm-sync",
+        "User-Agent": "nastech-agent-npm-sync",
         "X-GitHub-Api-Version": "2022-11-28",
     }
     token = os.environ.get("GITHUB_TOKEN")
@@ -79,7 +79,7 @@ def fetch_project_metadata(commit):
     url = f"https://raw.githubusercontent.com/{UPSTREAM_REPOSITORY}/{commit}/pyproject.toml"
     project = tomllib.loads(fetch_text(url)).get("project", {})
     version = project.get("version")
-    description = project.get("description") or "Hermes Agent from Nous Research"
+    description = project.get("description") or "Nastech Agent from Nastech Research"
     if not version or not SEMVER.fullmatch(version):
         raise ValueError(f"Upstream project.version is not valid npm semver: {version!r}")
     return version, description
@@ -135,8 +135,8 @@ def apply_metadata(tag_name, commit, version, description):
 
     package = json.loads(PACKAGE_JSON.read_text(encoding="utf-8"))
     package["version"] = version
-    package["description"] = f"Unofficial npm bridge for Hermes Agent {version}: {description}"
-    metadata = package.setdefault("hermesAgent", {})
+    package["description"] = f"Unofficial npm bridge for Nastech Agent {version}: {description}"
+    metadata = package.setdefault("nastechAgent", {})
     metadata.pop("pythonPackageVersion", None)
     metadata.update(
         {
@@ -146,7 +146,7 @@ def apply_metadata(tag_name, commit, version, description):
             "upstreamCommit": commit,
             "pythonVersion": "3.14",
             "installerFinalizeStage": "products",
-            "runtimeDirectory": "runtime/hermes-agent",
+            "runtimeDirectory": "runtime/nastech-agent",
         }
     )
 

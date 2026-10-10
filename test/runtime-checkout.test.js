@@ -20,7 +20,7 @@ function git(args, options = {}) {
 }
 
 test("keeps runtime source while omitting contributor metadata from the checkout", () => {
-  const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hermes-runtime-checkout-"));
+  const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "nastech-runtime-checkout-"));
   const origin = path.join(temporaryRoot, "origin");
   const checkout = path.join(temporaryRoot, "checkout");
 
@@ -60,7 +60,7 @@ test("keeps runtime source while omitting contributor metadata from the checkout
     );
     const commit = git([
       "-C", origin,
-      "-c", "user.name=Hermes Test",
+      "-c", "user.name=Nastech Test",
       "-c", "user.email=test@example.invalid",
       "commit-tree", rootTree, "-m", "fixture"
     ]);

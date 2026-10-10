@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: npm-publish-hermes-agent
+  group: npm-publish-nastech-agent
   cancel-in-progress: false
 
 jobs:
@@ -57,14 +57,14 @@ jobs:
         shell: bash
         run: |
           version="${{ steps.sync.outputs.version }}"
-          package="hermes-agent@$version"
+          package="nastech-agent@$version"
           if ! npm view "$package" version >/dev/null 2>&1; then
             echo "should_publish=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          published_tag="$(npm view "$package" hermesAgent.upstreamGitTag --json | tr -d '"')"
-          published_commit="$(npm view "$package" hermesAgent.upstreamCommit --json | tr -d '"')"
+          published_tag="$(npm view "$package" nastechAgent.upstreamGitTag --json | tr -d '"')"
+          published_commit="$(npm view "$package" nastechAgent.upstreamCommit --json | tr -d '"')"
           if [ "$published_tag" != "${{ steps.sync.outputs.upstream_tag }}" ] || [ "$published_commit" != "${{ steps.sync.outputs.upstream_commit }}" ]; then
             echo "Published $package maps to $published_tag/$published_commit, but latest Release maps to ${{ steps.sync.outputs.upstream_tag }}/${{ steps.sync.outputs.upstream_commit }}." >&2
             echo "A new npm version is required; refusing to overwrite immutable release metadata." >&2
@@ -123,7 +123,7 @@ jobs:
         run: npm run smoke
 
   publish:
-    name: Publish hermes-agent to npm
+    name: Publish nastech-agent to npm
     needs:
       - prepare
       - smoke
@@ -165,8 +165,8 @@ jobs:
         shell: bash
         run: |
           test "$(node -p 'require("./package.json").version')" = "${{ needs.prepare.outputs.version }}"
-          test "$(node -p 'require("./package.json").hermesAgent.upstreamGitTag')" = "${{ needs.prepare.outputs.upstream_tag }}"
-          test "$(node -p 'require("./package.json").hermesAgent.upstreamCommit')" = "${{ needs.prepare.outputs.upstream_commit }}"
+          test "$(node -p 'require("./package.json").nastechAgent.upstreamGitTag')" = "${{ needs.prepare.outputs.upstream_tag }}"
+          test "$(node -p 'require("./package.json").nastechAgent.upstreamCommit')" = "${{ needs.prepare.outputs.upstream_commit }}"
 
       - name: Test and inspect package
         run: |

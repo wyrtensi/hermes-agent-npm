@@ -26,25 +26,25 @@ venv remain until npm replaces or removes the package.
 
 ## Update network activity
 
-`hermes-npm check` contacts `https://registry.npmjs.org` to read the `latest`
-dist-tag. When an update is approved, `hermes-npm update` installs that exact
+`nastech-npm check` contacts `https://registry.npmjs.org` to read the `latest`
+dist-tag. When an update is approved, `nastech-npm update` installs that exact
 checked version from the same registry. npm can still use applicable proxy, CA,
 authentication, and credential configuration.
 
-`hermes update` is the unmodified upstream rolling updater. Its GitHub,
+`nastech update` is the unmodified upstream rolling updater. Its GitHub,
 dependency, backup, gateway, and managed-tool behavior belongs to upstream
-Hermes Agent rather than this bridge. Current upstream code may create a
-managed `uv` under `HERMES_HOME/bin` (normally `~/.hermes/bin`) while updating.
+Nastech Agent rather than this bridge. Current upstream code may create a
+managed `uv` under `NASTECH_HOME/bin` (normally `~/.nastech/bin`) while updating.
 
 ## Upstream handoff network activity
 
-`hermes-npm migrate upstream` only prints a plan. With `--yes`, the bridge runs
+`nastech-npm migrate upstream` only prints a plan. With `--yes`, the bridge runs
 the official installer stored in its verified Release checkout. That installer
 may contact GitHub, Astral/Python distribution services, Python package
 indexes, npm/Node distribution services, and browser/tool artifact hosts used
 by upstream. Interactive setup, gateway startup, and Desktop building are
 disabled, but upstream may still install managed prerequisites and seed files
-under `HERMES_HOME`.
+under `NASTECH_HOME`.
 
 The handoff preserves existing user state and does not copy it to a bridge
 service. After successful verification it runs npm uninstall for the detected
@@ -53,19 +53,19 @@ installation.
 
 ## Runtime boundary
 
-The `hermes` and `hermes-agent` commands execute upstream Hermes Agent. Model
+The `nastech` and `nastech-agent` commands execute upstream Nastech Agent. Model
 providers, tools, integrations, credentials, telemetry choices, and network
 calls configured there are governed by upstream software and third-party
 services selected by the user.
 
-Upstream source: https://github.com/NousResearch/hermes-agent
+Upstream source: https://github.com/NastechResearch/nastech-agent
 
 ## Auditing without lifecycle execution
 
 ```bash
-npm pack hermes-agent
-npm install --ignore-scripts ./hermes-agent-*.tgz
+npm pack nastech-agent
+npm install --ignore-scripts ./nastech-agent-*.tgz
 ```
 
-After review, provision the runtime with `npm rebuild hermes-agent`, or use
-`npm rebuild --global hermes-agent` for a global installation.
+After review, provision the runtime with `npm rebuild nastech-agent`, or use
+`npm rebuild --global nastech-agent` for a global installation.

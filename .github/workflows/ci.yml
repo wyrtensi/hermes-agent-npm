@@ -49,7 +49,7 @@ jobs:
 
       - name: Verify alias npm package contents
         run: npm pack --dry-run
-        working-directory: dist/hermesagent
+        working-directory: dist/nastechagent
 
       - name: Verify canonical npm command shims
         shell: bash
@@ -57,19 +57,19 @@ jobs:
           tmp_dir="$(mktemp -d)"
           package_tarball="$(npm pack --json | node -e 'let input=""; process.stdin.on("data", chunk => input += chunk); process.stdin.on("end", () => console.log(JSON.parse(input)[0].filename));')"
           npm install --ignore-scripts --prefix "$tmp_dir" "./$package_tarball"
-          for command in hermes hermes-agent hermes-npm; do
+          for command in nastech nastech-agent nastech-npm; do
             test -e "$tmp_dir/node_modules/.bin/$command" || test -e "$tmp_dir/node_modules/.bin/$command.cmd"
           done
-          package_root="$tmp_dir/node_modules/hermes-agent"
-          node "$package_root/bin/hermes-npm.js" methods --json | node -e 'let input=""; process.stdin.on("data", chunk => input += chunk); process.stdin.on("end", () => { const value=JSON.parse(input); if (value.recommendedForNpmUsers !== "npm-isolated") process.exit(1); });'
-          node "$package_root/bin/hermes-npm.js" migrate upstream --json | node -e 'let input=""; process.stdin.on("data", chunk => input += chunk); process.stdin.on("end", () => { const value=JSON.parse(input); if (!value.npmManagedInstall || value.mode !== "one-way-upstream-handoff") process.exit(1); });'
+          package_root="$tmp_dir/node_modules/nastech-agent"
+          node "$package_root/bin/nastech-npm.js" methods --json | node -e 'let input=""; process.stdin.on("data", chunk => input += chunk); process.stdin.on("end", () => { const value=JSON.parse(input); if (value.recommendedForNpmUsers !== "npm-isolated") process.exit(1); });'
+          node "$package_root/bin/nastech-npm.js" migrate upstream --json | node -e 'let input=""; process.stdin.on("data", chunk => input += chunk); process.stdin.on("end", () => { const value=JSON.parse(input); if (!value.npmManagedInstall || value.mode !== "one-way-upstream-handoff") process.exit(1); });'
 
       - name: Verify alias npm command shims
         shell: bash
         run: |
           tmp_dir="$(mktemp -d)"
-          npm install --ignore-scripts --prefix "$tmp_dir" ./dist/hermesagent
-          for command in hermes hermes-agent hermes-npm hermesagent; do
+          npm install --ignore-scripts --prefix "$tmp_dir" ./dist/nastechagent
+          for command in nastech nastech-agent nastech-npm nastechagent; do
             test -e "$tmp_dir/node_modules/.bin/$command" || test -e "$tmp_dir/node_modules/.bin/$command.cmd"
           done
 

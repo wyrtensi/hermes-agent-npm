@@ -63,7 +63,7 @@ Run:
 ```powershell
 node --test test/runtime-checkout.test.js
 npm run postinstall
-git -C runtime/hermes-agent status --porcelain --untracked-files=no
+git -C runtime/nastech-agent status --porcelain --untracked-files=no
 ```
 
 Expected: focused test passes and the exact `v2026.8.16.2` checkout is clean.
@@ -217,7 +217,7 @@ The runtime checkout must be clean and report channel `npm-release`.
 
 - [ ] **Step 3: Push and open a ready PR**
 
-Use the configured `wyrtensi` Git identity and the existing feature branch.
+Use the configured `nastechresearch` Git identity and the existing feature branch.
 
 - [ ] **Step 4: Wait for all GitHub checks**
 
@@ -232,4 +232,4 @@ run, and watch it through npm trusted publishing.
 - [ ] **Step 6: Verify npm publication**
 
 Confirm npm `latest`, upstream tag, upstream commit, integrity, and provenance
-for `hermes-agent@0.20.3`.
+for `nastech-agent@0.20.3`.

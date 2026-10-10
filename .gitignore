@@ -1,6 +1,6 @@
 node_modules/
 dist/
-.hermes-agent-runtime.json
+.nastech-agent-runtime.json
 .uv_bin/
 runtime/
 *.tgz

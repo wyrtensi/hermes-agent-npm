@@ -1,5 +1,5 @@
 #!/usr/bin/env node
 
-const { runHermes } = require("../lib/python-launcher");
+const { runNastech } = require("../lib/python-launcher");
 
-runHermes("hermes", process.argv.slice(2));
+runNastech("nastech", process.argv.slice(2));

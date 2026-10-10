@@ -34,7 +34,7 @@ const venvDirectory = getVenvDirectory();
 const python = process.platform === "win32"
   ? path.join(venvDirectory, "Scripts", "python.exe")
   : path.join(venvDirectory, "bin", "python");
-const hermes = getConsoleExecutable("hermes");
+const nastech = getConsoleExecutable("nastech");
 
 const installerManifest = process.platform === "win32"
   ? JSON.parse(run(
@@ -52,55 +52,55 @@ const installerManifest = process.platform === "win32"
       [path.join(sourceDirectory, "scripts", "install.sh"), "--manifest"],
       { cwd: packageRoot }
     ));
-const installerFinalizeStage = packageJson.hermesAgent.installerFinalizeStage || "path";
+const installerFinalizeStage = packageJson.nastechAgent.installerFinalizeStage || "path";
 if (!installerManifest.stages?.some((stage) => stage.name === installerFinalizeStage)) {
   throw new Error(`Pinned upstream installer does not expose the required ${installerFinalizeStage} stage.`);
 }
 
-for (const requiredPath of [path.join(sourceDirectory, ".git"), python, hermes]) {
+for (const requiredPath of [path.join(sourceDirectory, ".git"), python, nastech]) {
   if (!fs.existsSync(requiredPath)) throw new Error(`Runtime path is missing: ${requiredPath}`);
 }
 
 const commit = run("git", ["-C", sourceDirectory, "rev-parse", "HEAD"]);
-if (commit !== packageJson.hermesAgent.upstreamCommit) {
-  throw new Error(`Runtime commit ${commit} does not match ${packageJson.hermesAgent.upstreamCommit}`);
+if (commit !== packageJson.nastechAgent.upstreamCommit) {
+  throw new Error(`Runtime commit ${commit} does not match ${packageJson.nastechAgent.upstreamCommit}`);
 }
 
 run(
   python,
   [
     "-c",
-    "import pathlib,sys; base=pathlib.Path(sys._base_executable).resolve(); root=pathlib.Path(sys.argv[1]).resolve(); assert root in base.parents, (base,root); import hermes_cli.main,run_agent",
+    "import pathlib,sys; base=pathlib.Path(sys._base_executable).resolve(); root=pathlib.Path(sys.argv[1]).resolve(); assert root in base.parents, (base,root); import nastech_cli.main,run_agent",
     path.join(packageRoot, "runtime", "python")
   ],
   { env: getRuntimeEnvironment() }
 );
 
-run(hermes, ["--version"], { env: getRuntimeEnvironment() });
+run(nastech, ["--version"], { env: getRuntimeEnvironment() });
 const smokeHome = path.join(packageRoot, "runtime", ".smoke-home");
 fs.rmSync(smokeHome, { recursive: true, force: true });
 try {
-  run(hermes, ["update", "--check"], {
-    env: { ...getRuntimeEnvironment(), HERMES_HOME: smokeHome },
+  run(nastech, ["update", "--check"], {
+    env: { ...getRuntimeEnvironment(), NASTECH_HOME: smokeHome },
     timeout: 120_000
   });
 } finally {
   fs.rmSync(smokeHome, { recursive: true, force: true });
 }
-const status = JSON.parse(run(process.execPath, [path.join(packageRoot, "bin", "hermes-npm.js"), "status", "--json"]));
+const status = JSON.parse(run(process.execPath, [path.join(packageRoot, "bin", "nastech-npm.js"), "status", "--json"]));
 if (!status.runtimeReady || status.runtimeChannel !== "npm-release") {
-  throw new Error(`Unexpected hermes-npm status: ${JSON.stringify(status)}`);
+  throw new Error(`Unexpected nastech-npm status: ${JSON.stringify(status)}`);
 }
-const methods = JSON.parse(run(process.execPath, [path.join(packageRoot, "bin", "hermes-npm.js"), "methods", "--json"]));
+const methods = JSON.parse(run(process.execPath, [path.join(packageRoot, "bin", "nastech-npm.js"), "methods", "--json"]));
 if (methods.recommendedForNpmUsers !== "npm-isolated" || methods.methods.length < 3) {
-  throw new Error(`Unexpected hermes-npm methods: ${JSON.stringify(methods)}`);
+  throw new Error(`Unexpected nastech-npm methods: ${JSON.stringify(methods)}`);
 }
 const migrationPlan = JSON.parse(run(
   process.execPath,
-  [path.join(packageRoot, "bin", "hermes-npm.js"), "migrate", "upstream", "--json"]
+  [path.join(packageRoot, "bin", "nastech-npm.js"), "migrate", "upstream", "--json"]
 ));
 if (migrationPlan.upstreamCommit !== commit || migrationPlan.mode !== "one-way-upstream-handoff") {
   throw new Error(`Unexpected upstream migration plan: ${JSON.stringify(migrationPlan)}`);
 }
 
-console.log(`Runtime smoke test passed for ${packageJson.hermesAgent.upstreamGitTag} (${commit.slice(0, 12)}).`);
+console.log(`Runtime smoke test passed for ${packageJson.nastechAgent.upstreamGitTag} (${commit.slice(0, 12)}).`);

@@ -19,7 +19,7 @@ const {
 test("finds the project owning a regular node_modules directory", () => {
   const root = path.parse(process.cwd()).root;
   const project = path.join(root, "work", "example");
-  const packagePath = path.join(project, "node_modules", "hermes-agent");
+  const packagePath = path.join(project, "node_modules", "nastech-agent");
   assert.equal(findNodeModulesOwner(packagePath), project);
 });
 
@@ -31,7 +31,7 @@ test("compares release and prerelease npm versions", () => {
 });
 
 test("routes release updates through the checked npm channel", () => {
-  assert.equal(getReleaseUpdateCommand(), "hermes-npm update");
+  assert.equal(getReleaseUpdateCommand(), "nastech-npm update");
 });
 
 test("describes all supported installation ownership models", () => {
@@ -42,7 +42,7 @@ test("describes all supported installation ownership models", () => {
     "upstream-managed",
     "manual-development"
   ]);
-  assert.equal(methods.methods[1].migrateFromNpm, "hermes-npm migrate upstream --yes");
+  assert.equal(methods.methods[1].migrateFromNpm, "nastech-npm migrate upstream --yes");
 });
 
 test("checks the canonical package at the official npm registry", async (context) => {
@@ -56,17 +56,17 @@ test("checks the canonical package at the official npm registry", async (context
   });
 
   assert.equal(await fetchLatestNpmVersion(), "0.20.1");
-  assert.equal(requestedUrl, "https://registry.npmjs.org/hermes-agent");
+  assert.equal(requestedUrl, "https://registry.npmjs.org/nastech-agent");
 });
 
 test("builds exact-version npm install arguments against the canonical registry", () => {
   assert.deepEqual(
     getReleaseUpdateArgs("0.20.1", { isGlobal: false }),
-    ["install", "--registry", "https://registry.npmjs.org", "hermes-agent@0.20.1"]
+    ["install", "--registry", "https://registry.npmjs.org", "nastech-agent@0.20.1"]
   );
   assert.deepEqual(
     getReleaseUpdateArgs("0.20.1", { isGlobal: true }),
-    ["install", "--global", "--registry", "https://registry.npmjs.org", "hermes-agent@0.20.1"]
+    ["install", "--global", "--registry", "https://registry.npmjs.org", "nastech-agent@0.20.1"]
   );
   assert.equal(getReleaseUpdateArgs("0.20.1", { isGlobal: false }).some((arg) => arg.includes("@latest")), false);
   assert.throws(() => getReleaseUpdateArgs("latest", { isGlobal: false }), /Invalid npm semver/);
@@ -76,15 +76,15 @@ test("prints exact local commands for a manual alias migration", () => {
   const commands = getAliasMigrationCommands(
     "0.20.1",
     { isGlobal: false },
-    "hermesagent",
-    "hermes-agent"
+    "nastechagent",
+    "nastech-agent"
   );
   assert.deepEqual(commands, [
-    "npm uninstall hermesagent",
-    "npm install --registry https://registry.npmjs.org hermes-agent@0.20.1"
+    "npm uninstall nastechagent",
+    "npm install --registry https://registry.npmjs.org nastech-agent@0.20.1"
   ]);
   assert.throws(
-    () => assertReleaseUpdateAllowed("0.20.1", { isGlobal: false }, "hermesagent", "hermes-agent"),
+    () => assertReleaseUpdateAllowed("0.20.1", { isGlobal: false }, "nastechagent", "nastech-agent"),
     (error) => commands.every((command) => error.message.includes(command))
   );
 });
@@ -93,22 +93,22 @@ test("prints exact global commands for a manual alias migration", () => {
   const commands = getAliasMigrationCommands(
     "0.20.1",
     { isGlobal: true },
-    "hermesagent",
-    "hermes-agent"
+    "nastechagent",
+    "nastech-agent"
   );
   assert.deepEqual(commands, [
-    "npm uninstall --global hermesagent",
-    "npm install --global --registry https://registry.npmjs.org hermes-agent@0.20.1"
+    "npm uninstall --global nastechagent",
+    "npm install --global --registry https://registry.npmjs.org nastech-agent@0.20.1"
   ]);
 });
 
 test("allows the canonical package to apply a checked release update", () => {
   assert.equal(
-    getAliasMigrationCommands("0.20.1", { isGlobal: false }, "hermes-agent", "hermes-agent"),
+    getAliasMigrationCommands("0.20.1", { isGlobal: false }, "nastech-agent", "nastech-agent"),
     null
   );
   assert.doesNotThrow(
-    () => assertReleaseUpdateAllowed("0.20.1", { isGlobal: false }, "hermes-agent", "hermes-agent")
+    () => assertReleaseUpdateAllowed("0.20.1", { isGlobal: false }, "nastech-agent", "nastech-agent")
   );
 });
 

@@ -10,14 +10,14 @@ Git base: `c020305cd3ff4c47c2b1fa1e44a2ea4d5695ccf0`.
 
 ## Implemented architecture
 
-- `hermes` and `hermes-agent` launch the real console executables from a
+- `nastech` and `nastech-agent` launch the real console executables from a
   package-local virtual environment.
-- `hermes update` and `hermes update --check` pass unchanged to the native
+- `nastech update` and `nastech update --check` pass unchanged to the native
   upstream rolling updater.
-- `hermes-npm status/check/update` owns the npm Release channel.
-- `hermes-npm methods/help` documents all supported ownership models for users
+- `nastech-npm status/check/update` owns the npm Release channel.
+- `nastech-npm methods/help` documents all supported ownership models for users
   and agents.
-- `hermes-npm migrate upstream` plans a safe one-way transfer to the standard
+- `nastech-npm migrate upstream` plans a safe one-way transfer to the standard
   user-scoped upstream checkout; `--yes` executes the pinned installer,
   verifies it, then removes the npm package.
 - Installation uses a shallow Git checkout pinned to upstream tag
@@ -25,8 +25,8 @@ Git base: `c020305cd3ff4c47c2b1fa1e44a2ea4d5695ccf0`.
   `3c27eb6234bf91b8ceee9e9071591b31e9b148cb`.
 - Checksum-pinned `uv` 0.12.13 provisions package-local Python 3.11 and runs
   upstream `uv sync --frozen --extra all --no-dev`.
-- No upstream installer script, PyPI Hermes package, system-Python fallback,
-  shell pipeline, or `HERMES_NIX_BUILD` bypass is used.
+- No upstream installer script, PyPI Nastech package, system-Python fallback,
+  shell pipeline, or `NASTECH_NIX_BUILD` bypass is used.
 - The only upstream-installer path is the separately confirmed handoff. It is
   never invoked by npm lifecycle provisioning.
 - GitHub Release polling, CI, and publication gates are defined for Windows,
@@ -34,7 +34,7 @@ Git base: `c020305cd3ff4c47c2b1fa1e44a2ea4d5695ccf0`.
 
 ## Update-channel behavior
 
-`hermes-npm check` reads the canonical public npm registry. An npm update is
+`nastech-npm check` reads the canonical public npm registry. An npm update is
 bound to the exact checked semver and the same
 `https://registry.npmjs.org` endpoint; it never performs a second mutable
 `@latest` resolution. Package downgrades are refused.
@@ -44,7 +44,7 @@ native-updated checkout can be reset in place to the pinned commit. Dirty or
 damaged checkouts use transactional replacement. Same-version `npm rebuild`
 preserves a valid rolling checkout.
 
-The build-only `hermesagent` alias checks the canonical channel but refuses an
+The build-only `nastechagent` alias checks the canonical channel but refuses an
 automatic alias-to-canonical migration. It prints exact local/global commands
 that remove the alias and install the checked canonical version, preventing a
 silent second isolated runtime.
@@ -52,11 +52,11 @@ silent second isolated runtime.
 ## Runtime layout
 
 ```text
-.hermes-agent-runtime.json
+.nastech-agent-runtime.json
 .uv_bin/
 runtime/python/
-runtime/hermes-agent/.git/
-runtime/hermes-agent/venv/
+runtime/nastech-agent/.git/
+runtime/nastech-agent/venv/
 ```
 
 ## Security state
@@ -66,7 +66,7 @@ reportable findings:
 
 - scan ID: `3c174a14-945a-473e-9b36-c029b30a11f9`;
 - report:
-  `C:\Users\wyrtensi\AppData\Local\Temp\codex-security-scans-1VLsq6\hermesnpm\c020305cd3ff4c47c2b1fa1e44a2ea4d5695ccf0_20260807T104613Z_ne1vkb40\report.md`.
+  `C:\Users\nastechresearch\AppData\Local\Temp\codex-security-scans-1VLsq6\nastechnpm\c020305cd3ff4c47c2b1fa1e44a2ea4d5695ccf0_20260807T104613Z_ne1vkb40\report.md`.
 
 The scan identified one non-reportable defense-in-depth issue: the checked npm
 version was not bound to the install subprocess. That issue is now fixed with
@@ -92,14 +92,14 @@ using `--ignore-scripts`.
 - `npm run smoke`: passed for `v2026.8.3` at `3c27eb6234bf`.
 - Root `npm pack --dry-run`: passed; 16 intended files.
 - Alias build and `npm pack --dry-run`: passed; 16 intended files.
-- Live `hermes-npm check --json`: passed and reported local `0.20.0` ahead
+- Live `nastech-npm check --json`: passed and reported local `0.20.0` ahead
   of currently published npm `0.19.0`.
 - GitHub Release synchronization resolved the expected release, exact commit,
   and project version.
 - Python syntax and both workflow YAML files parsed successfully.
 - `git diff --check`: passed; only Git line-ending conversion warnings remain.
 - Earlier end-to-end checks also passed for first-time Windows provisioning,
-  native `hermes update --check`, rolling drift detection, release reset, and
+  native `nastech update --check`, rolling drift detection, release reset, and
   post-reset smoke.
 - All 18 committed `uv` checksums were compared with Astral's official 0.12.13
   release checksums.

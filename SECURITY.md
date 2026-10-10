@@ -3,7 +3,7 @@
 
 ## Supported versions
 
-Only the latest published `hermes-agent` npm release receives bridge security
+Only the latest published `nastech-agent` npm release receives bridge security
 updates.
 
 | Version | Status | Deployment model |
@@ -12,7 +12,7 @@ updates.
 | Older `>=0.20.0` | Unsupported | Same deployment model without current bridge fixes |
 | `<0.20.0` | Unsupported | Legacy system-Python and PyPI installation |
 
-Security fixes in upstream Hermes Agent become available to this channel after
+Security fixes in upstream Nastech Agent become available to this channel after
 upstream publishes a GitHub Release and the matching npm bridge passes its
 release checks. The native rolling channel can receive upstream commits sooner,
 with the different trust boundary described below.
@@ -22,27 +22,27 @@ with the different trust boundary described below.
 Report vulnerabilities in this npm bridge through GitHub private vulnerability
 reporting:
 
-https://github.com/wyrtensi/hermes-agent-npm/security/advisories/new
+https://github.com/nastechresearch/nastech-agent-npm/security/advisories/new
 
 Include the npm version, operating system and architecture, affected command or
 lifecycle step, impact, and reproduction details. Do not open a public issue
 for an untriaged vulnerability.
 
-Report vulnerabilities in Hermes Agent runtime behavior to upstream:
+Report vulnerabilities in Nastech Agent runtime behavior to upstream:
 
-https://github.com/NousResearch/hermes-agent/security
+https://github.com/NastechResearch/nastech-agent/security
 
 Use the public bridge issue tracker only for non-sensitive installation and
 compatibility bugs:
 
-https://github.com/wyrtensi/hermes-agent-npm/issues
+https://github.com/nastechresearch/nastech-agent-npm/issues
 
 ## Security scope
 
 This policy covers:
 
-- the npm command shims and `hermes-npm` release-channel commands;
-- the explicit `hermes-npm migrate upstream` handoff and its preflight checks;
+- the npm command shims and `nastech-npm` release-channel commands;
+- the explicit `nastech-npm migrate upstream` handoff and its preflight checks;
 - npm lifecycle provisioning in `scripts/postinstall.js`;
 - `uv` asset selection, download, checksum verification, and extraction;
 - GitHub Release metadata synchronization and npm publishing workflows;
@@ -67,7 +67,7 @@ The bridge is intended to preserve these properties:
    the npm package.
 6. Python, the virtual environment, the Git checkout, and temporary caches
    created by npm lifecycle installation remain inside the npm package.
-7. `hermes update` is passed to the upstream console entrypoint unchanged; the
+7. `nastech update` is passed to the upstream console entrypoint unchanged; the
    bridge does not falsely represent rolling source as npm-attested source.
 8. A release-channel reset returns tracked upstream source to the commit pinned
    by npm without deleting untracked files with `git clean`.
@@ -87,7 +87,7 @@ Upstream stopped publishing new PyPI releases. The bridge therefore provisions
 the runtime during npm installation so this remains sufficient:
 
 ```bash
-npm install --global hermes-agent
+npm install --global nastech-agent
 ```
 
 Lifecycle scripts execute with the installing user's permissions. Review the
@@ -108,7 +108,7 @@ audit procedure below avoids lifecycle execution.
 5. enforce compressed and extracted size limits, verify SHA-256, and extract
    only `uv`/`uv.exe` with Node.js;
 6. provision managed Python 3.11 under `runtime/python/`;
-7. create `runtime/hermes-agent/venv/` and run
+7. create `runtime/nastech-agent/venv/` and run
    `uv sync --frozen --extra all --no-dev` using upstream project configuration
    and `uv.lock`;
 8. remove the temporary dependency cache and write a runtime identity marker.
@@ -120,7 +120,7 @@ Release check.
 
 The installer does not invoke an upstream installer script, a system package
 manager, system Python/pip, `curl`, `tar`, PowerShell download evaluation, or
-`HERMES_NIX_BUILD`.
+`NASTECH_NIX_BUILD`.
 
 This statement applies to npm lifecycle provisioning. The optional upstream
 handoff described below intentionally invokes the official installer only
@@ -132,8 +132,8 @@ The bridge deliberately provides two update channels.
 
 ### npm Release channel
 
-`hermes-npm check` reads the npm `latest` dist-tag from the canonical public
-registry. When a newer package exists, `hermes-npm update` installs the exact
+`nastech-npm check` reads the npm `latest` dist-tag from the canonical public
+registry. When a newer package exists, `nastech-npm update` installs the exact
 version that was checked from that same registry; it does not perform a second
 mutable `@latest` resolution. If the npm package is already current, the command
 resets a clean rolling checkout in place to the tag/commit pinned by the
@@ -146,19 +146,19 @@ execution.
 
 ### Native rolling channel
 
-`hermes update` and `hermes update --check` run the unmodified upstream updater.
+`nastech update` and `nastech update --check` run the unmodified upstream updater.
 The updater normally follows upstream `main`, mutates the package-local checkout
-and venv, and may install managed tools under `HERMES_HOME` (currently a managed
-`uv` under `HERMES_HOME/bin`). After a rolling update, npm provenance no longer
+and venv, and may install managed tools under `NASTECH_HOME` (currently a managed
+`uv` under `NASTECH_HOME/bin`). After a rolling update, npm provenance no longer
 attests to the live upstream source.
 
-Use `hermes-npm status --json` to distinguish `npm-release`, `upstream-native`,
-and `missing` runtime states. Use `hermes-npm update` to return to the npm
+Use `nastech-npm status --json` to distinguish `npm-release`, `upstream-native`,
+and `missing` runtime states. Use `nastech-npm update` to return to the npm
 Release boundary.
 
 ### Upstream-managed handoff
 
-`hermes-npm migrate upstream` is a read-only plan. The `--yes` form transfers
+`nastech-npm migrate upstream` is a read-only plan. The `--yes` form transfers
 ownership to an upstream-managed installation. It does not download or
 evaluate the mutable installer endpoint: it runs `scripts/install.sh` or
 `scripts/install.ps1` from the package's verified, Release-pinned checkout and
@@ -168,7 +168,7 @@ setup skipped.
 Before execution the bridge requires an `npm-release` runtime, refuses an
 external target that is not a Git checkout when it already exists, validates
 an existing checkout's origin against the official upstream repository,
-refuses a dirty target, and refuses `HERMES_HOME` inside the npm package. After
+refuses a dirty target, and refuses `NASTECH_HOME` inside the npm package. After
 installation it verifies a clean exact Git HEAD and the platform venv console
 executable. npm uninstall is
 started only after these checks pass. The official installer's `path` stage is
@@ -177,7 +177,7 @@ if global npm removal shared their bin directory. If installation or
 verification fails, the npm package remains the active owner.
 
 The handoff is intentionally not side-by-side. The official installer may
-write outside the npm package, manage `HERMES_HOME/bin`, user PATH, Python,
+write outside the npm package, manage `NASTECH_HOME/bin`, user PATH, Python,
 Node/browser prerequisites, configuration templates, and bundled skills. Its
 behavior is upstream's trust domain after the user explicitly elects to leave
 npm ownership. Interactive setup, gateway startup, and Desktop building are
@@ -192,7 +192,7 @@ Installation may contact:
 - package indexes and artifact hosts referenced by upstream project
   configuration and `uv.lock`.
 
-`hermes-npm check` and the update it authorizes are bound to
+`nastech-npm check` and the update it authorizes are bound to
 `https://registry.npmjs.org`; npm can still honor applicable proxy, CA, and
 authentication settings. Git commands may honor user proxy, credential-helper,
 and CA configuration. Git is run with terminal credential prompts disabled and
@@ -207,28 +207,28 @@ the checked-out upstream project's `uv` configuration and lockfile.
 npm installation creates or modifies only these package-local locations:
 
 ```text
-.hermes-agent-runtime.json
+.nastech-agent-runtime.json
 .uv_bin/
 runtime/cache/
 runtime/python/
-runtime/hermes-agent/
+runtime/nastech-agent/
 ```
 
 It does not modify system Python, shell profiles, the global `PATH` beyond
 normal npm command shims, services, scheduled tasks, or Git configuration.
 
-Running upstream Hermes is different from installing the bridge. Upstream may
+Running upstream Nastech is different from installing the bridge. Upstream may
 write configuration, credentials, logs, backups, managed tools, and runtime
-state under `HERMES_HOME` and may start user-requested gateways or integrations.
+state under `NASTECH_HOME` and may start user-requested gateways or integrations.
 Uninstalling npm does not remove that user data.
 
-Do not run upstream `hermes uninstall` while npm owns the runtime. Upstream
+Do not run upstream `nastech uninstall` while npm owns the runtime. Upstream
 derives its project root from the running Python package, so in npm mode it can
 remove the checkout inside `node_modules` without removing the npm package or
 its marker. Use scope-appropriate `npm uninstall` instead. After a completed
 handoff, upstream owns the checkout and its native uninstaller is appropriate.
 
-For a project-local installation, `hermes-npm update` invokes `npm install` in
+For a project-local installation, `nastech-npm update` invokes `npm install` in
 the owning project and may update its dependency manifest and lockfile according
 to normal npm behavior.
 
@@ -284,12 +284,12 @@ and impact; these examples are not automatic ratings.
   SSH signature.
 - Native rolling updates intentionally follow a mutable upstream branch and
   can move beyond reviewed Releases or create files outside the npm package
-  under `HERMES_HOME`.
+  under `NASTECH_HOME`.
 - Host compromise, malicious npm/Git configuration, or write access to the
   installed package can invalidate local guarantees.
 - Only the latest npm bridge release is maintained; users must update to
   receive bridge fixes.
-- Windows can prevent replacement while Hermes processes hold runtime files;
+- Windows can prevent replacement while Nastech processes hold runtime files;
   users should stop agents, gateways, and desktop processes before npm-channel
   replacement.
 - The optional handoff expands the filesystem and tool-management boundary to
@@ -299,7 +299,7 @@ and impact; these examples are not automatic ratings.
 
 ## Out of scope
 
-- vulnerabilities solely in upstream Hermes Agent, its bundled skills, or its
+- vulnerabilities solely in upstream Nastech Agent, its bundled skills, or its
   third-party dependencies, unless the bridge introduces or amplifies them;
 - model-provider behavior, prompt injection against an intentionally running
   agent, and actions explicitly authorized through upstream tools;
@@ -315,8 +315,8 @@ out-of-scope component are still welcome.
 Fetch and unpack without running lifecycle scripts:
 
 ```bash
-npm pack hermes-agent
-npm install --ignore-scripts ./hermes-agent-*.tgz
+npm pack nastech-agent
+npm install --ignore-scripts ./nastech-agent-*.tgz
 ```
 
 Review at minimum:
@@ -330,13 +330,13 @@ package/lib/npm-channel.js
 package/lib/upstream-migration.js
 ```
 
-Compare `hermesAgent.upstreamGitTag` and `hermesAgent.upstreamCommit` with the
+Compare `nastechAgent.upstreamGitTag` and `nastechAgent.upstreamCommit` with the
 official upstream Release. After review, provision with:
 
 ```bash
-npm rebuild hermes-agent
+npm rebuild nastech-agent
 # or, for a global installation:
-npm rebuild --global hermes-agent
+npm rebuild --global nastech-agent
 ```
 
 Security scanners are expected to flag the lifecycle script. Treat that as a

@@ -28,9 +28,9 @@ for (const relativePath of [
   "PRIVACY.md",
   "README.md",
   "SECURITY.md",
-  "bin/hermes.js",
-  "bin/hermes-agent.js",
-  "bin/hermes-npm.js",
+  "bin/nastech.js",
+  "bin/nastech-agent.js",
+  "bin/nastech-npm.js",
   "lib/npm-channel.js",
   "lib/package-metadata.js",
   "lib/python-launcher.js",
@@ -50,11 +50,11 @@ const aliasPackage = {
   bin: Object.fromEntries(
     getPackageBinNames(ALIAS_PACKAGE_NAME).map((name) => [
       name,
-      name === "hermes"
-        ? "bin/hermes.js"
-        : name === "hermes-npm"
-          ? "bin/hermes-npm.js"
-          : "bin/hermes-agent.js"
+      name === "nastech"
+        ? "bin/nastech.js"
+        : name === "nastech-npm"
+          ? "bin/nastech-npm.js"
+          : "bin/nastech-agent.js"
     ])
   ),
   scripts: {
@@ -71,8 +71,8 @@ const aliasPackage = {
     "README.md",
     "SECURITY.md"
   ],
-  hermesAgent: {
-    ...rootPackage.hermesAgent,
+  nastechAgent: {
+    ...rootPackage.nastechAgent,
     canonicalNpmPackage: rootPackage.name
   }
 };

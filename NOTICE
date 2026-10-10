@@ -1,27 +1,27 @@
-hermes-agent npm bridge
-Copyright (c) 2026 wyrtensi
+nastech-agent npm bridge
+Copyright (c) 2026 nastechresearch
 License: MIT
 
-This repository publishes an unofficial npm bridge for Hermes Agent. npm
+This repository publishes an unofficial npm bridge for Nastech Agent. npm
 release synchronization follows the latest official non-draft,
 non-prerelease GitHub Release from the upstream project.
 
-Hermes Agent is developed by Nous Research.
-Upstream repository: https://github.com/NousResearch/hermes-agent
-Upstream releases: https://github.com/NousResearch/hermes-agent/releases
+Nastech Agent is developed by Nastech Research.
+Upstream repository: https://github.com/NastechResearch/nastech-agent
+Upstream releases: https://github.com/NastechResearch/nastech-agent/releases
 Upstream license: MIT
-Upstream copyright notice: Copyright (c) 2025 Nous Research
+Upstream copyright notice: Copyright (c) 2025 Nastech Research
 
-This repository does not claim ownership of upstream source code, the Hermes
-Agent name, or Nous Research marks. It provides Node.js command shims,
+This repository does not claim ownership of upstream source code, the Nastech
+Agent name, or Nastech Research marks. It provides Node.js command shims,
 installation orchestration, release metadata, and an npm-specific update/status
 interface.
 
 The published npm tarball contains bridge code, not the upstream source tree.
 During installation, Git fetches the exact upstream Release tag and verifies
 that it resolves to the full commit SHA recorded in package.json. The installed
-checkout remains mutable because `hermes update` intentionally invokes the
+checkout remains mutable because `nastech update` intentionally invokes the
 native upstream rolling updater.
 
 For the upstream license text, see:
-https://github.com/NousResearch/hermes-agent/blob/main/LICENSE
+https://github.com/NastechResearch/nastech-agent/blob/main/LICENSE

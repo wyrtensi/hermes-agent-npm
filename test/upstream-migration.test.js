@@ -10,7 +10,7 @@ const {
   createUpstreamMigrationPlan,
   executeUpstreamMigration,
   formatInvocation,
-  getDefaultHermesHome,
+  getDefaultNastechHome,
   getNpmUninstallArgs,
   getUpstreamInstallerInvocation,
   getUpstreamPathInvocation,
@@ -19,27 +19,27 @@ const {
   normalizeRepositoryUrl
 } = require("../lib/upstream-migration");
 
-test("uses platform-native default Hermes homes", () => {
+test("uses platform-native default Nastech homes", () => {
   assert.equal(
-    getDefaultHermesHome("linux", {}, "/home/example"),
-    path.posix.resolve("/home/example/.hermes")
+    getDefaultNastechHome("linux", {}, "/home/example"),
+    path.posix.resolve("/home/example/.nastech")
   );
   assert.equal(
-    getDefaultHermesHome("darwin", { HERMES_HOME: "/srv/hermes" }, "/Users/example"),
-    path.posix.resolve("/srv/hermes")
+    getDefaultNastechHome("darwin", { NASTECH_HOME: "/srv/nastech" }, "/Users/example"),
+    path.posix.resolve("/srv/nastech")
   );
   assert.equal(
-    getDefaultHermesHome("win32", { LOCALAPPDATA: "C:\\Users\\Example\\AppData\\Local" }, "C:\\Users\\Example"),
-    path.win32.resolve("C:\\Users\\Example\\AppData\\Local", "hermes")
+    getDefaultNastechHome("win32", { LOCALAPPDATA: "C:\\Users\\Example\\AppData\\Local" }, "C:\\Users\\Example"),
+    path.win32.resolve("C:\\Users\\Example\\AppData\\Local", "nastech")
   );
 });
 
 test("builds a pinned non-interactive POSIX installer invocation", () => {
   const plan = {
-    installerPath: "/npm/runtime/hermes-agent/scripts/install.sh",
+    installerPath: "/npm/runtime/nastech-agent/scripts/install.sh",
     upstreamCommit: "a".repeat(40),
-    installDirectory: "/home/example/.hermes/hermes-agent",
-    hermesHome: "/home/example/.hermes"
+    installDirectory: "/home/example/.nastech/nastech-agent",
+    nastechHome: "/home/example/.nastech"
   };
   assert.deepEqual(getUpstreamInstallerInvocation(plan, "linux"), {
     command: "bash",
@@ -50,7 +50,7 @@ test("builds a pinned non-interactive POSIX installer invocation", () => {
       "--skip-setup",
       "--non-interactive",
       "--dir", plan.installDirectory,
-      "--hermes-home", plan.hermesHome
+      "--nastech-home", plan.nastechHome
     ]
   });
 });
@@ -69,7 +69,7 @@ test("builds a pinned non-interactive Windows installer invocation", () => {
   assert.ok(plan.installer.args.includes(plan.upstreamCommit));
   assert.ok(plan.installer.args.includes("-NonInteractive"));
   assert.ok(plan.installer.args.includes("-InstallDir"));
-  assert.deepEqual(plan.npmUninstall.args, ["uninstall", "--global", "hermes-agent"]);
+  assert.deepEqual(plan.npmUninstall.args, ["uninstall", "--global", "nastech-agent"]);
   assert.equal(plan.finalizePath.command, "powershell.exe");
   assert.ok(plan.finalizePath.args.includes("-Stage"));
   assert.ok(plan.finalizePath.args.includes(plan.installerFinalizeStage));
@@ -77,33 +77,33 @@ test("builds a pinned non-interactive Windows installer invocation", () => {
 
 test("defaults to the legacy path stage without release stage metadata", () => {
   const invocation = getUpstreamPathInvocation({
-    installDirectory: "C:\\Users\\Example\\hermes-agent",
-    hermesHome: "C:\\Users\\Example"
+    installDirectory: "C:\\Users\\Example\\nastech-agent",
+    nastechHome: "C:\\Users\\Example"
   }, "win32");
   assert.ok(invocation.args.includes("path"));
 });
 
 test("re-applies the official POSIX products stage after npm removal", () => {
   const plan = {
-    installDirectory: "/home/example/.hermes/hermes-agent",
-    hermesHome: "/home/example/.hermes",
+    installDirectory: "/home/example/.nastech/nastech-agent",
+    nastechHome: "/home/example/.nastech",
     installerFinalizeStage: "products"
   };
   assert.deepEqual(getUpstreamPathInvocation(plan, "linux"), {
     command: "bash",
     args: [
-      "/home/example/.hermes/hermes-agent/scripts/install.sh",
+      "/home/example/.nastech/nastech-agent/scripts/install.sh",
       "--stage", "products",
       "--non-interactive",
       "--dir", plan.installDirectory,
-      "--hermes-home", plan.hermesHome
+      "--nastech-home", plan.nastechHome
     ]
   });
 });
 
 test("keeps npm uninstall scope explicit", () => {
-  assert.deepEqual(getNpmUninstallArgs({ isGlobal: false }), ["uninstall", "hermes-agent"]);
-  assert.deepEqual(getNpmUninstallArgs({ isGlobal: true }), ["uninstall", "--global", "hermes-agent"]);
+  assert.deepEqual(getNpmUninstallArgs({ isGlobal: false }), ["uninstall", "nastech-agent"]);
+  assert.deepEqual(getNpmUninstallArgs({ isGlobal: true }), ["uninstall", "--global", "nastech-agent"]);
 });
 
 test("refuses migration execution outside an installed node_modules package", () => {
@@ -113,7 +113,7 @@ test("refuses migration execution outside an installed node_modules package", ()
         npmManagedInstall: false,
         platform: process.platform,
         installerPath: __filename,
-        hermesHome: path.dirname(__dirname),
+        nastechHome: path.dirname(__dirname),
         installDirectory: path.join(path.dirname(__dirname), "unused")
       },
       { runtimeChannel: "npm-release" },
@@ -124,21 +124,21 @@ test("refuses migration execution outside an installed node_modules package", ()
 });
 
 test("verifies the official target before starting npm removal", async () => {
-  const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hermes-migration-test-"));
-  const installDirectory = path.join(temporaryRoot, "hermes-agent");
-  const consoleExecutable = path.join(installDirectory, "venv", "bin", "hermes");
+  const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "nastech-migration-test-"));
+  const installDirectory = path.join(temporaryRoot, "nastech-agent");
+  const consoleExecutable = path.join(installDirectory, "venv", "bin", "nastech");
   const commit = "b".repeat(40);
   const calls = [];
   const plan = {
     npmManagedInstall: true,
     platform: "linux",
     installerPath: __filename,
-    hermesHome: temporaryRoot,
+    nastechHome: temporaryRoot,
     installDirectory,
     consoleExecutable,
     upstreamCommit: commit,
     installer: { command: "bash", args: [__filename] },
-    npmUninstall: { command: "npm", args: ["uninstall", "hermes-agent"] },
+    npmUninstall: { command: "npm", args: ["uninstall", "nastech-agent"] },
     finalizePath: { command: "bash", args: ["--stage", "products"] },
     npmWorkingDirectory: temporaryRoot
   };
@@ -162,8 +162,8 @@ test("verifies the official target before starting npm removal", async () => {
 });
 
 test("refuses an existing checkout with an unexpected origin", () => {
-  const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hermes-origin-test-"));
-  const installDirectory = path.join(temporaryRoot, "hermes-agent");
+  const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "nastech-origin-test-"));
+  const installDirectory = path.join(temporaryRoot, "nastech-agent");
   fs.mkdirSync(path.join(installDirectory, ".git"), { recursive: true });
   try {
     assert.throws(
@@ -176,15 +176,15 @@ test("refuses an existing checkout with an unexpected origin", () => {
 });
 
 test("refuses a dirty existing upstream checkout", () => {
-  const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hermes-dirty-test-"));
-  const installDirectory = path.join(temporaryRoot, "hermes-agent");
+  const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "nastech-dirty-test-"));
+  const installDirectory = path.join(temporaryRoot, "nastech-agent");
   fs.mkdirSync(path.join(installDirectory, ".git"), { recursive: true });
   try {
     assert.throws(
       () => inspectExistingTarget(
         { installDirectory },
         (args) => args.includes("remote")
-          ? "https://github.com/NousResearch/hermes-agent.git"
+          ? "https://github.com/NastechResearch/nastech-agent.git"
           : " M scripts/install.sh"
       ),
       /dirty upstream checkout/
@@ -195,19 +195,19 @@ test("refuses a dirty existing upstream checkout", () => {
 });
 
 test("does not remove npm when post-install verification fails", async () => {
-  const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hermes-verification-test-"));
-  const installDirectory = path.join(temporaryRoot, "hermes-agent");
+  const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "nastech-verification-test-"));
+  const installDirectory = path.join(temporaryRoot, "nastech-agent");
   const calls = [];
   const plan = {
     npmManagedInstall: true,
     platform: "linux",
     installerPath: __filename,
-    hermesHome: temporaryRoot,
+    nastechHome: temporaryRoot,
     installDirectory,
-    consoleExecutable: path.join(installDirectory, "venv", "bin", "hermes"),
+    consoleExecutable: path.join(installDirectory, "venv", "bin", "nastech"),
     upstreamCommit: "c".repeat(40),
     installer: { command: "bash", args: [__filename] },
-    npmUninstall: { command: "npm", args: ["uninstall", "hermes-agent"] },
+    npmUninstall: { command: "npm", args: ["uninstall", "nastech-agent"] },
     npmWorkingDirectory: temporaryRoot
   };
 
@@ -227,20 +227,20 @@ test("does not remove npm when post-install verification fails", async () => {
 });
 
 test("finalizes official command ownership even when npm removal reports failure", async () => {
-  const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hermes-uninstall-test-"));
-  const installDirectory = path.join(temporaryRoot, "hermes-agent");
-  const consoleExecutable = path.join(installDirectory, "venv", "bin", "hermes");
+  const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "nastech-uninstall-test-"));
+  const installDirectory = path.join(temporaryRoot, "nastech-agent");
+  const consoleExecutable = path.join(installDirectory, "venv", "bin", "nastech");
   const calls = [];
   const plan = {
     npmManagedInstall: true,
     platform: "linux",
     installerPath: __filename,
-    hermesHome: temporaryRoot,
+    nastechHome: temporaryRoot,
     installDirectory,
     consoleExecutable,
     upstreamCommit: "d".repeat(40),
     installer: { command: "bash", args: [__filename] },
-    npmUninstall: { command: "npm", args: ["uninstall", "hermes-agent"] },
+    npmUninstall: { command: "npm", args: ["uninstall", "nastech-agent"] },
     finalizePath: { command: "bash", args: ["--stage", "products"] },
     npmWorkingDirectory: temporaryRoot
   };
@@ -267,8 +267,8 @@ test("finalizes official command ownership even when npm removal reports failure
   }
 });
 
-test("canonical containment catches a symlinked Hermes home", { skip: process.platform === "win32" }, () => {
-  const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hermes-symlink-test-"));
+test("canonical containment catches a symlinked Nastech home", { skip: process.platform === "win32" }, () => {
+  const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "nastech-symlink-test-"));
   const linkedHome = path.join(temporaryRoot, "linked-home");
   fs.symlinkSync(path.resolve(__dirname, ".."), linkedHome, "dir");
   try {
@@ -278,13 +278,13 @@ test("canonical containment catches a symlinked Hermes home", { skip: process.pl
           npmManagedInstall: true,
           platform: process.platform,
           installerPath: __filename,
-          hermesHome: linkedHome,
-          installDirectory: path.join(linkedHome, "hermes-agent")
+          nastechHome: linkedHome,
+          installDirectory: path.join(linkedHome, "nastech-agent")
         },
         { runtimeChannel: "npm-release" },
         () => null
       ),
-      /HERMES_HOME or its install target resolves inside the npm package/
+      /NASTECH_HOME or its install target resolves inside the npm package/
     );
   } finally {
     fs.rmSync(temporaryRoot, { recursive: true, force: true });
@@ -292,8 +292,8 @@ test("canonical containment catches a symlinked Hermes home", { skip: process.pl
 });
 
 test("canonical containment catches a symlinked install target", { skip: process.platform === "win32" }, () => {
-  const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hermes-target-symlink-test-"));
-  const linkedTarget = path.join(temporaryRoot, "hermes-agent");
+  const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "nastech-target-symlink-test-"));
+  const linkedTarget = path.join(temporaryRoot, "nastech-agent");
   fs.symlinkSync(path.resolve(__dirname, ".."), linkedTarget, "dir");
   try {
     assert.throws(
@@ -302,13 +302,13 @@ test("canonical containment catches a symlinked install target", { skip: process
           npmManagedInstall: true,
           platform: process.platform,
           installerPath: __filename,
-          hermesHome: temporaryRoot,
+          nastechHome: temporaryRoot,
           installDirectory: linkedTarget
         },
         { runtimeChannel: "npm-release" },
         () => null
       ),
-      /HERMES_HOME or its install target resolves inside the npm package/
+      /NASTECH_HOME or its install target resolves inside the npm package/
     );
   } finally {
     fs.rmSync(temporaryRoot, { recursive: true, force: true });
@@ -324,8 +324,8 @@ test("detects paths inside the npm-owned tree", () => {
 
 test("normalizes accepted repository URL punctuation", () => {
   assert.equal(
-    normalizeRepositoryUrl("https://github.com/NousResearch/hermes-agent.git/\n"),
-    "https://github.com/NousResearch/hermes-agent.git"
+    normalizeRepositoryUrl("https://github.com/NastechResearch/nastech-agent.git/\n"),
+    "https://github.com/NastechResearch/nastech-agent.git"
   );
 });
 

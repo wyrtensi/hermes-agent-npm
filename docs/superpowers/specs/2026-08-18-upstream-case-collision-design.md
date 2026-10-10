@@ -17,7 +17,7 @@ performed by the prepare job, which caused a secondary HTTP 429 failure.
 The npm runtime checkout will use Git sparse-checkout and omit the upstream
 `contributors/` tree. This directory is repository metadata rather than Python
 runtime input. The same sparse configuration remains active during native Git
-updates, so release installs and `hermes update` continue to use ordinary Git
+updates, so release installs and `nastech update` continue to use ordinary Git
 without hiding modifications to runtime files.
 
 The exclusion is deliberately narrow. A case-insensitive collision anywhere

@@ -3,7 +3,7 @@
 ## Goals
 
 - Replace the discontinued upstream PyPI installation path.
-- Preserve native upstream `hermes update` as the default rolling updater.
+- Preserve native upstream `nastech update` as the default rolling updater.
 - Add a separate npm release-pinned update channel.
 - Keep Python and dependencies isolated inside the npm package.
 - Avoid executing upstream developer installation scripts.
@@ -17,15 +17,15 @@
 2. `postinstall` creates a real Git checkout at that exact commit.
 3. A pinned Astral `uv` binary provisions managed Python 3.11.
 4. `uv sync --frozen --extra all --no-dev` installs the editable upstream
-   project into `runtime/hermes-agent/venv`.
+   project into `runtime/nastech-agent/venv`.
 5. npm shims execute upstream console entrypoints directly.
-6. `hermes update` is not parsed or replaced by the bridge.
-7. `hermes-npm status/check/update` owns the npm Release channel.
+6. `nastech update` is not parsed or replaced by the bridge.
+7. `nastech-npm status/check/update` owns the npm Release channel.
 8. npm reinstall intentionally resets a rolling checkout to a published
    Release; same-version rebuild preserves it.
-9. `hermes-npm methods/help` exposes install, update, removal, and ownership
+9. `nastech-npm methods/help` exposes install, update, removal, and ownership
    choices in human-readable and JSON forms.
-10. `hermes-npm migrate upstream` is dry-run by default. Its `--yes` form runs
+10. `nastech-npm migrate upstream` is dry-run by default. Its `--yes` form runs
     the official installer from the verified checkout, pins and verifies the
     same commit, then removes the npm package. Normal npm installation never
     invokes that script.

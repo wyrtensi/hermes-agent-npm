@@ -17,11 +17,11 @@ const sourceDirectory = getRuntimeSourceDirectory();
 const venvDirectory = getVenvDirectory();
 const managedPythonDirectory = path.join(runtimeRoot, "python");
 const cacheDirectory = path.join(runtimeRoot, "cache");
-const runtimeMarkerPath = path.join(packageRoot, ".hermes-agent-runtime.json");
-const pythonVersion = packageJson.hermesAgent?.pythonVersion || "3.11";
-const upstreamRepository = packageJson.hermesAgent?.upstreamRepository;
-const upstreamTag = packageJson.hermesAgent?.upstreamGitTag;
-const upstreamCommit = packageJson.hermesAgent?.upstreamCommit;
+const runtimeMarkerPath = path.join(packageRoot, ".nastech-agent-runtime.json");
+const pythonVersion = packageJson.nastechAgent?.pythonVersion || "3.11";
+const upstreamRepository = packageJson.nastechAgent?.upstreamRepository;
+const upstreamTag = packageJson.nastechAgent?.upstreamGitTag;
+const upstreamCommit = packageJson.nastechAgent?.upstreamCommit;
 const forceRelease = process.argv.slice(2).includes("--force-release");
 
 function assertRuntimePath(target) {
@@ -38,13 +38,13 @@ function removeRuntimePath(target) {
 
 function validateMetadata() {
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(upstreamRepository || "")) {
-    throw new Error("package.json contains an invalid hermesAgent.upstreamRepository");
+    throw new Error("package.json contains an invalid nastechAgent.upstreamRepository");
   }
   if (!/^v[A-Za-z0-9][A-Za-z0-9._-]*$/.test(upstreamTag || "")) {
-    throw new Error("package.json contains an invalid hermesAgent.upstreamGitTag");
+    throw new Error("package.json contains an invalid nastechAgent.upstreamGitTag");
   }
   if (!/^[0-9a-f]{40}$/.test(upstreamCommit || "")) {
-    throw new Error("package.json must pin hermesAgent.upstreamCommit to a full commit SHA");
+    throw new Error("package.json must pin nastechAgent.upstreamCommit to a full commit SHA");
   }
 }
 
@@ -85,7 +85,7 @@ function ensureGit() {
     return run("git", ["--version"], { capture: true, env: cleanGitEnvironment() });
   } catch {
     throw new Error(
-      "Git is required for the native 'hermes update' channel. Install Git and run 'npm rebuild hermes-agent'."
+      "Git is required for the native 'nastech update' channel. Install Git and run 'npm rebuild nastech-agent'."
     );
   }
 }
@@ -173,8 +173,8 @@ function resetPinnedCheckoutInPlace() {
 }
 
 function installPinnedCheckout() {
-  const stageDirectory = path.join(runtimeRoot, `.hermes-agent-stage-${process.pid}`);
-  const backupDirectory = path.join(runtimeRoot, `.hermes-agent-backup-${process.pid}`);
+  const stageDirectory = path.join(runtimeRoot, `.nastech-agent-stage-${process.pid}`);
+  const backupDirectory = path.join(runtimeRoot, `.nastech-agent-backup-${process.pid}`);
   removeRuntimePath(stageDirectory);
   removeRuntimePath(backupDirectory);
   createPinnedCheckout(stageDirectory);
@@ -188,7 +188,7 @@ function installPinnedCheckout() {
     fs.renameSync(stageDirectory, sourceDirectory);
   } catch (error) {
     if (backedUp && !fs.existsSync(sourceDirectory)) fs.renameSync(backupDirectory, sourceDirectory);
-    throw new Error(`Unable to replace the Hermes runtime. Stop running Hermes processes and retry: ${error.message}`);
+    throw new Error(`Unable to replace the Nastech runtime. Stop running Nastech processes and retry: ${error.message}`);
   } finally {
     removeRuntimePath(stageDirectory);
   }
@@ -296,7 +296,7 @@ async function main() {
       transaction = resetPinnedCheckoutInPlace();
     } else {
       if (forceRelease) console.log("Resetting the runtime to the release commit pinned by this npm package...");
-      console.log(`Preparing Hermes Agent ${upstreamTag} at ${upstreamCommit.slice(0, 12)}...`);
+      console.log(`Preparing Nastech Agent ${upstreamTag} at ${upstreamCommit.slice(0, 12)}...`);
       transaction = installPinnedCheckout();
     }
 
@@ -305,7 +305,7 @@ async function main() {
     const runtimeMarker = {
       npmPackage: packageName,
       npmVersion: packageJson.version,
-      upstreamVersion: packageJson.hermesAgent.upstreamVersion,
+      upstreamVersion: packageJson.nastechAgent.upstreamVersion,
       upstreamGitTag: upstreamTag,
       upstreamCommit,
       runtimeCommitAtInstall: runtimeCommit,
@@ -314,16 +314,16 @@ async function main() {
       platform: process.platform,
       arch: process.arch,
       installedAt: new Date().toISOString(),
-      nativeUpdateCommand: "hermes update",
-      npmUpdateCommand: "hermes-npm update"
+      nativeUpdateCommand: "nastech update",
+      npmUpdateCommand: "nastech-npm update"
     };
     fs.writeFileSync(runtimeMarkerPath, `${JSON.stringify(runtimeMarker, null, 2)}\n`, "utf8");
     transaction?.commit();
-    console.log("Hermes Agent npm runtime is ready.");
-    console.log("Use 'hermes update' for upstream rolling updates or 'hermes-npm update' for npm releases.");
+    console.log("Nastech Agent npm runtime is ready.");
+    console.log("Use 'nastech update' for upstream rolling updates or 'nastech-npm update' for npm releases.");
   } catch (error) {
     transaction?.rollback();
-    throw new Error(`Failed to prepare the isolated Hermes Agent runtime: ${error.message}`);
+    throw new Error(`Failed to prepare the isolated Nastech Agent runtime: ${error.message}`);
   } finally {
     removeRuntimePath(cacheDirectory);
   }

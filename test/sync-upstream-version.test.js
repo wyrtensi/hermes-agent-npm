@@ -9,17 +9,17 @@ const syncScript = path.resolve(__dirname, "..", "scripts", "sync_upstream_versi
 
 function fixturePackage() {
   return {
-    name: "hermes-agent",
+    name: "nastech-agent",
     version: "0.0.0",
     description: "before",
-    hermesAgent: {
+    nastechAgent: {
       pythonPackageVersion: "stale"
     }
   };
 }
 
 function runOfflineSync(extraEnvironment = {}) {
-  const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hermes-sync-test-"));
+  const temporaryRoot = fs.mkdtempSync(path.join(os.tmpdir(), "nastech-sync-test-"));
   const packagePath = path.join(temporaryRoot, "package.json");
   fs.writeFileSync(packagePath, `${JSON.stringify(fixturePackage(), null, 2)}\n`, "utf8");
   const description = "Future fixture release";
@@ -50,15 +50,15 @@ test("applies complete prepared Release metadata without rediscovering GitHub la
     assert.equal(execution.result.status, 0, execution.result.stderr);
     const packageJson = JSON.parse(fs.readFileSync(execution.packagePath, "utf8"));
     assert.equal(packageJson.version, "9.8.7");
-    assert.equal(packageJson.description, "Unofficial npm bridge for Hermes Agent 9.8.7: Future fixture release");
-    assert.deepEqual(packageJson.hermesAgent, {
+    assert.equal(packageJson.description, "Unofficial npm bridge for Nastech Agent 9.8.7: Future fixture release");
+    assert.deepEqual(packageJson.nastechAgent, {
       upstreamVersion: "9.8.7",
-      upstreamRepository: "NousResearch/hermes-agent",
+      upstreamRepository: "NastechResearch/nastech-agent",
       upstreamGitTag: "v2099.1.1",
       upstreamCommit: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       pythonVersion: "3.14",
       installerFinalizeStage: "products",
-      runtimeDirectory: "runtime/hermes-agent"
+      runtimeDirectory: "runtime/nastech-agent"
     });
   } finally {
     execution.cleanup();
@@ -74,7 +74,7 @@ test("uses the semantic Release tag when upstream project.version is a placehold
     assert.equal(execution.result.status, 0, execution.result.stderr);
     const packageJson = JSON.parse(fs.readFileSync(execution.packagePath, "utf8"));
     assert.equal(packageJson.version, "0.21.6");
-    assert.equal(packageJson.hermesAgent.upstreamVersion, "0.21.6");
+    assert.equal(packageJson.nastechAgent.upstreamVersion, "0.21.6");
     assert.match(execution.result.stdout, /^version=0\.21\.6$/m);
   } finally {
     execution.cleanup();
