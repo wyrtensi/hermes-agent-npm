@@ -77,4 +77,6 @@ jobs:
         run: npm run postinstall
 
       - name: Verify isolated runtime and native update check
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: npm run smoke

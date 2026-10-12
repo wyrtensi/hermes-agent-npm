@@ -120,6 +120,8 @@ jobs:
         run: npm run postinstall
 
       - name: Verify isolated runtime
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: npm run smoke
 
   publish:
