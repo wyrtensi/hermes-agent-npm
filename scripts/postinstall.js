@@ -6,6 +6,7 @@ const path = require("node:path");
 
 const packageJson = require("../package.json");
 const { getRelatedPackageNames } = require("../lib/package-metadata");
+const { holdProvisionLockForInstaller } = require("../lib/provision");
 const { getRuntimeSourceDirectory, getVenvDirectory } = require("../lib/python-launcher");
 const { configureRuntimeSparseCheckout } = require("../lib/runtime-checkout");
 const { ensureUv, UV_VERSION } = require("../lib/uv-installer");
@@ -276,6 +277,17 @@ function warnIfRelatedPackageInstalled() {
 }
 
 async function main() {
+  const lock = holdProvisionLockForInstaller(packageRoot, {
+    onWait: (holder) => console.log(`Waiting for another Hermes Agent setup to finish${holder?.pid ? ` (PID ${holder.pid})` : ""}...`)
+  });
+  try {
+    await provision();
+  } finally {
+    lock.release();
+  }
+}
+
+async function provision() {
   validateMetadata();
   warnIfRelatedPackageInstalled();
   console.log(ensureGit());

@@ -6,9 +6,11 @@ const path = require("node:path");
 const test = require("node:test");
 
 const {
+  HELD_LOCK_ENV,
   STALE_LOCK_MS,
   acquireProvisionLock,
   getProvisionLockPath,
+  holdProvisionLockForInstaller,
   provisionLockIsStale,
   provisionRuntime
 } = require("../lib/provision");
@@ -81,6 +83,48 @@ test("treats an expired lock as stale even when its PID is alive", (context) => 
   assert.equal(provisionLockIsStale(lockPath, now), true);
   writeLock(lockPath, { pid: process.pid, startedAt: new Date(now).toISOString() });
   assert.equal(provisionLockIsStale(lockPath, now), false);
+});
+
+test("keeps a lock with a live PID through a long installation", (context) => {
+  const root = tempDirectory(context);
+  const lockPath = getProvisionLockPath(root);
+  const now = Date.now();
+  writeLock(lockPath, { pid: process.pid, startedAt: new Date(now - 2 * 60 * 60 * 1000).toISOString() });
+  assert.equal(provisionLockIsStale(lockPath, now), false);
+});
+
+test("an npm lifecycle installer takes the provisioning lock", (context) => {
+  const root = tempDirectory(context);
+  const lockPath = getProvisionLockPath(root);
+  const lock = holdProvisionLockForInstaller(root, { env: {}, timeoutMs: 1000, pollMs: 50 });
+  assert.equal(JSON.parse(fs.readFileSync(lockPath, "utf8")).pid, process.pid);
+  lock.release();
+  assert.equal(fs.existsSync(lockPath), false);
+});
+
+test("an installer spawned under the lock does not wait on its parent", (context) => {
+  const root = tempDirectory(context);
+  const lockPath = getProvisionLockPath(root);
+  writeLock(lockPath, { pid: process.pid, startedAt: new Date().toISOString() });
+  const lock = holdProvisionLockForInstaller(root, { env: { [HELD_LOCK_ENV]: lockPath }, timeoutMs: 100, pollMs: 10 });
+  lock.release();
+  assert.equal(fs.existsSync(lockPath), true);
+});
+
+test("provisionRuntime tells the installer which lock it holds", (context) => {
+  const root = tempDirectory(context);
+  let childEnv;
+  const result = provisionRuntime({
+    packageRoot: root,
+    env: { KEEP: "1" },
+    spawnSync: (command, args, options) => {
+      childEnv = options.env;
+      return { status: 0 };
+    }
+  });
+  assert.equal(result.status, 0);
+  assert.equal(childEnv.KEEP, "1");
+  assert.equal(childEnv[HELD_LOCK_ENV], getProvisionLockPath(root));
 });
 
 test("keeps a freshly created lock that has not been written yet", (context) => {
