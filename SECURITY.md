@@ -183,7 +183,9 @@ The dependency environment the native updater builds is recorded under
 startup. Because an npm reinstall keeps that path, a later `hermes-npm update`
 returns tracked source to the Release commit but does not return dependency
 selection to the package's own `venv`; the bridge does not delete state under
-`HERMES_HOME`, and `hermes-npm status` does not yet report this case. Launchers
+`HERMES_HOME`. `hermes-npm status` reports this case as
+`dependenciesOwner: "upstream-pm"` and does not report the `npm-release`
+channel while upstream's record or a self-managed install stamp is present. Launchers
 published to `~/.local/bin` point into the npm package and break when npm
 replaces or removes it. The README describes how to return to npm ownership.
 

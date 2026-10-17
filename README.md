@@ -274,8 +274,10 @@ launchers, and an npm reinstall or `hermes-npm update` does not take them back:
   path, and selects it at startup. npm reinstalls the package at the same path,
   so the Release-pinned source then runs on the environment from the native
   update rather than the package's own `venv`. `hermes-npm update` restores the
-  source commit, not the dependencies, and `hermes-npm status` does not detect
-  this yet. The record lives in `~/.hermes/installs`
+  source commit, not the dependencies. `hermes-npm status` reports this as
+  `dependencies: upstream package manager` (`dependenciesOwner: "upstream-pm"`
+  in `--json`, with the selected environment in `dependencyEnvironment`) and
+  no longer reports the `npm-release` channel. The record lives in `~/.hermes/installs`
   (`%LOCALAPPDATA%\hermes\installs` on Windows) unless `HERMES_HOME` points
   outside that directory; `<key>` is the first 16 hex digits of the SHA-256 of
   the `runtime source` path that `hermes-npm status` prints.
@@ -302,6 +304,17 @@ Inspect the local relationship between npm and the live checkout:
 hermes-npm status
 hermes-npm status --json
 ```
+
+`runtimeChannel` is `npm-release` only when the checkout is clean at the commit
+pinned by the npm package and npm owns its dependencies. It is
+`upstream-native` when the source has moved, when upstream's package manager
+has recorded a dependency environment for the checkout
+(`dependenciesOwner: "upstream-pm"`, read from
+`<root>/installs/<key>/facts.json` exactly where upstream looks), or when the
+checkout carries an untracked `install-stamp.json` with
+`updateMechanism: "self"` (`upstreamSelfManagedStamp`), which hands it to
+upstream's package manager on its next launch. `hermes-npm status` reads only
+the record for the active Hermes root, the one upstream itself selects first.
 
 Check the npm registry:
 

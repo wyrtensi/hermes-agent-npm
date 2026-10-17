@@ -11,6 +11,7 @@ const {
   getInstallMethods,
   getReleaseUpdateArgs,
   getReleaseUpdateCommand,
+  getRuntimeChannel,
   isReleasePinned,
   parseGitStatusPorcelain,
   pathsReferToSameInstallLocation
@@ -133,4 +134,11 @@ test("requires a successful clean Git status before reporting the release channe
   assert.equal(isReleasePinned(true, commit, commit, []), true);
   assert.equal(isReleasePinned(true, commit, commit, [" M runtime.py"]), false);
   assert.equal(isReleasePinned(true, commit, commit, null), false);
+});
+
+test("does not report the npm release channel while upstream manages the dependencies", () => {
+  assert.equal(getRuntimeChannel(true, true, false), "npm-release");
+  assert.equal(getRuntimeChannel(true, true, true), "upstream-native");
+  assert.equal(getRuntimeChannel(true, false, false), "upstream-native");
+  assert.equal(getRuntimeChannel(false, false, true), "missing");
 });
