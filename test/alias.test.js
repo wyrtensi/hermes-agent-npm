@@ -69,4 +69,5 @@ test("ships every helper required by the alias postinstall script", () => {
   });
   assert.equal(result.status, 0, result.stderr);
   assert.equal(fs.existsSync(path.join(root, "dist", "hermesagent", "lib", "runtime-checkout.js")), true);
+  assert.equal(fs.existsSync(path.join(root, "dist", "hermesagent", "lib", "provision.js")), true);
 });

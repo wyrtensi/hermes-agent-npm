@@ -7,3 +7,4 @@ runtime/
 npm-debug.log*
 .DS_Store
 .worktrees/
+.hermes-agent-provision.lock

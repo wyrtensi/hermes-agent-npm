@@ -33,6 +33,7 @@ for (const relativePath of [
   "bin/hermes-npm.js",
   "lib/npm-channel.js",
   "lib/package-metadata.js",
+  "lib/provision.js",
   "lib/python-launcher.js",
   "lib/runtime-checkout.js",
   "lib/upstream-migration.js",
