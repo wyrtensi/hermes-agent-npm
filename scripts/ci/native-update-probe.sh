@@ -62,6 +62,7 @@ section "After native update"
   for facts in "$HERMES_HOME"/installs/*/facts.json; do echo "$facts:"; cat "$facts" 2>&1; echo; done
   echo "HERMES_HOME top level:"; ls -la "$HERMES_HOME" 2>&1
   echo "~/.local/bin:"; ls -la "$HOME/.local/bin" 2>&1
+  for launcher in "$HOME"/.local/bin/hermes*; do echo "$launcher:"; cat "$launcher" 2>&1; echo; done
   echo "hermes on PATH: $(command -v hermes)"
   echo "hermes-npm status:"; hermes-npm status 2>&1
 } | block
