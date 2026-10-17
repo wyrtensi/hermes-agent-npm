@@ -68,6 +68,12 @@ test("ships every helper required by the alias postinstall script", () => {
     windowsHide: true
   });
   assert.equal(result.status, 0, result.stderr);
-  assert.equal(fs.existsSync(path.join(root, "dist", "hermesagent", "lib", "runtime-checkout.js")), true);
-  assert.equal(fs.existsSync(path.join(root, "dist", "hermesagent", "lib", "provision.js")), true);
+  for (const file of fs.readdirSync(path.join(root, "lib"))) {
+    assert.equal(fs.existsSync(path.join(root, "dist", "hermesagent", "lib", file)), true, `alias is missing lib/${file}`);
+  }
+  const methods = spawnSync(process.execPath, [path.join(root, "dist", "hermesagent", "bin", "hermes-npm.js"), "methods", "--json"], {
+    encoding: "utf8",
+    windowsHide: true
+  });
+  assert.equal(methods.status, 0, methods.stderr);
 });

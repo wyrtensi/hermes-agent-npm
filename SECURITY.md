@@ -67,7 +67,8 @@ The bridge is intended to preserve these properties:
 4. Release installation fetches the recorded Git tag and verifies that it
    resolves to the full commit SHA recorded in `package.json`.
 5. npm lifecycle installer deletion/replacement targets must resolve inside
-   the npm package.
+   the npm package. The only exception is the upstream install state named in
+   invariant 12.
 6. Python, the virtual environment, the Git checkout, and temporary caches
    created by npm lifecycle installation remain inside the npm package.
 7. `hermes update` is passed to the upstream console entrypoint unchanged; the
@@ -85,6 +86,14 @@ The bridge is intended to preserve these properties:
     Node.js, with the same verification and package-local boundary as the
     npm lifecycle. It never passes `--allow-scripts` to npm or changes npm
     configuration.
+12. Under `HERMES_HOME`, the installer deletes only `<root>/installs/<key>`,
+    the install state upstream's package manager keeps for this package's
+    checkout, with `<root>` from upstream's `get_default_hermes_root` and
+    `<key>` from its `install_key`, and only after it has replaced or reset
+    the checkout to the pinned commit. The key must be 16 hex digits and
+    neither `installs` nor the target may be a symbolic link. Inside the
+    package it additionally deletes only the checkout's untracked
+    `install-stamp.json`. Every removed path is printed.
 
 A change that violates one of these invariants is security-relevant even if no
 exploit has yet been demonstrated.
@@ -180,12 +189,25 @@ provenance no longer attests to the live upstream source.
 
 The dependency environment the native updater builds is recorded under
 `HERMES_HOME/installs/`, keyed by the checkout path, and upstream selects it at
-startup. Because an npm reinstall keeps that path, a later `hermes-npm update`
-returns tracked source to the Release commit but does not return dependency
-selection to the package's own `venv`; the bridge does not delete state under
-`HERMES_HOME`, and `hermes-npm status` does not yet report this case. Launchers
+startup. `hermes-npm status` reports this case as
+`dependenciesOwner: "upstream-pm"` and does not report the `npm-release`
+channel while upstream's record or a self-managed install stamp is present.
+
+When the installer puts the checkout back on the commit pinned by npm (a fresh
+checkout after npm reinstalls or replaces the package, or an in-place reset by
+`hermes-npm update`), it takes dependency selection back: it removes exactly
+`<root>/installs/<key>` for this checkout, where `<root>` and `<key>` are
+computed the way upstream computes them, and the checkout's untracked
+`install-stamp.json`, and prints each removed path. It refuses a key that is
+not 16 hex digits, a path that is not `<root>/installs/<key>`, and an
+`installs` directory or install-state directory that is a symbolic link. A
+removal failure is reported and leaves the installation in place;
+`hermes-npm status` then still shows upstream ownership. When the installer
+keeps an existing checkout (`hermes-npm setup` or `npm rebuild` for the same
+version), it removes nothing, so a native update stays in effect. Launchers
 published to `~/.local/bin` point into the npm package and break when npm
-replaces or removes it. The README describes how to return to npm ownership.
+replaces or removes it; the bridge does not remove them. The README describes
+how to remove them.
 
 Use `hermes-npm status --json` to distinguish `npm-release`, `upstream-native`,
 and `missing` runtime states. Use `hermes-npm update` to return to the npm

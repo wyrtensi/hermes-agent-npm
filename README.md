@@ -267,18 +267,33 @@ the user `PATH` on Windows. These are outside the npm release-pinned boundary
 and are the explicit tradeoff for keeping native update behavior unchanged.
 
 After a native update, upstream owns the dependency environment and the
-launchers, and an npm reinstall or `hermes-npm update` does not take them back:
+launchers:
 
 - Upstream records the environment it built under
   `HERMES_HOME/installs/<key>`, where the key is derived from the checkout
-  path, and selects it at startup. npm reinstalls the package at the same path,
-  so the Release-pinned source then runs on the environment from the native
-  update rather than the package's own `venv`. `hermes-npm update` restores the
-  source commit, not the dependencies, and `hermes-npm status` does not detect
-  this yet. The record lives in `~/.hermes/installs`
-  (`%LOCALAPPDATA%\hermes\installs` on Windows) unless `HERMES_HOME` points
-  outside that directory; `<key>` is the first 16 hex digits of the SHA-256 of
-  the `runtime source` path that `hermes-npm status` prints.
+  path, marks the checkout as self-managed with an untracked
+  `install-stamp.json`, and selects that environment at startup instead of the
+  package's own `venv`. `hermes-npm status` reports this as
+  `dependencies: upstream package manager` (`dependenciesOwner: "upstream-pm"`
+  in `--json`, with the selected environment in `dependencyEnvironment`) and
+  does not report the `npm-release` channel. The record lives in
+  `~/.hermes/installs` (`%LOCALAPPDATA%\hermes\installs` on Windows) unless
+  `HERMES_HOME` points outside that directory, in which case it lives in
+  `HERMES_HOME/installs` (or `<root>/installs` for a `<root>/profiles/<name>`
+  home); `<key>` is the first 16 hex digits of the SHA-256 of the
+  `runtime source` path that `hermes-npm status` prints.
+- npm takes the dependencies back whenever the bridge puts the checkout back
+  on the commit pinned by the npm package: after `npm install` replaces the
+  package (or `hermes-npm update` installs a newer one) and provisions a fresh
+  checkout, and when a same-version `hermes-npm update` resets the checkout in
+  place. The installer then removes that `installs/<key>` directory and the
+  checkout's `install-stamp.json`, prints what it removed, and upstream falls
+  back to the package `venv`. Nothing else under `HERMES_HOME` is touched, so
+  upstream's shared tools under `HERMES_HOME/tools` and all user data stay.
+  `hermes-npm setup` and `npm rebuild` for the same version keep the existing
+  checkout and therefore keep a native update, dependencies included. The
+  installer uses the `HERMES_HOME` of the shell it runs in; run it with the
+  same `HERMES_HOME` as `hermes update`.
 - The launchers upstream publishes in `~/.local/bin` execute files inside the
   npm package (`runtime/hermes-agent/.hermes/bin`). They stop working once npm
   reinstalls or removes the package; if `~/.local/bin` comes before the npm
@@ -289,10 +304,11 @@ launchers, and an npm reinstall or `hermes-npm update` does not take them back:
   Linux; it has no effect on Windows, where upstream publishes its launchers
   in the `bin` directory it adds to the user `PATH`.
 
-To return fully to npm ownership after a native update, remove that
-`installs/<key>` directory and those launchers, then run `hermes-npm update`
-or reinstall the package. User configuration, sessions,
-and skills elsewhere in `HERMES_HOME` are not affected.
+To return fully to npm ownership after a native update, run `hermes-npm update`
+or reinstall the package, and remove those launchers yourself; the bridge does
+not remove files outside the npm package other than that `installs/<key>`
+directory. User configuration, sessions, and skills elsewhere in `HERMES_HOME`
+are not affected.
 
 ### npm Release channel
 
@@ -302,6 +318,17 @@ Inspect the local relationship between npm and the live checkout:
 hermes-npm status
 hermes-npm status --json
 ```
+
+`runtimeChannel` is `npm-release` only when the checkout is clean at the commit
+pinned by the npm package and npm owns its dependencies. It is
+`upstream-native` when the source has moved, when upstream's package manager
+has recorded a dependency environment for the checkout
+(`dependenciesOwner: "upstream-pm"`, read from
+`<root>/installs/<key>/facts.json` exactly where upstream looks), or when the
+checkout carries an untracked `install-stamp.json` with
+`updateMechanism: "self"` (`upstreamSelfManagedStamp`), which hands it to
+upstream's package manager on its next launch. `hermes-npm status` reads only
+the record for the active Hermes root, the one upstream itself selects first.
 
 Check the npm registry:
 
@@ -327,9 +354,12 @@ npm install --registry=https://registry.npmjs.org hermes-agent@<checked-version>
 
 An npm update intentionally replaces source moved by a native update with
 the exact checkout pinned by the npm Release. If npm is already at the latest version but
-the live checkout has moved, `hermes-npm update` directly reprovisions that
-same release commit. This discards tracked source changes in the package-local
-checkout; upstream user configuration under `HERMES_HOME` is unaffected.
+the live checkout has moved, or upstream's package manager owns its
+dependencies, `hermes-npm update` directly reprovisions that same release
+commit. This discards tracked source changes in the package-local checkout and
+returns dependency selection to the package `venv` as described under
+[Native upstream channel](#native-upstream-channel); upstream user
+configuration under `HERMES_HOME` is unaffected.
 Running `hermes-npm setup` (or `npm rebuild`) for the same package version
 instead preserves an existing native-updated checkout and only resynchronizes its
 environment.

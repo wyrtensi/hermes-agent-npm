@@ -37,6 +37,7 @@ for (const relativePath of [
   "lib/python-launcher.js",
   "lib/runtime-checkout.js",
   "lib/upstream-migration.js",
+  "lib/upstream-ownership.js",
   "lib/uv-installer.js",
   "scripts/postinstall.js"
 ]) {
