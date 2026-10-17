@@ -178,6 +178,15 @@ can publish launchers outside npm (`~/.local/bin` on macOS and Linux, a
 `HERMES_HOME\bin` user `PATH` entry on Windows). After a native update, npm
 provenance no longer attests to the live upstream source.
 
+The dependency environment the native updater builds is recorded under
+`HERMES_HOME/installs/`, keyed by the checkout path, and upstream selects it at
+startup. Because an npm reinstall keeps that path, a later `hermes-npm update`
+returns tracked source to the Release commit but does not return dependency
+selection to the package's own `venv`; the bridge does not delete state under
+`HERMES_HOME`, and `hermes-npm status` does not yet report this case. Launchers
+published to `~/.local/bin` point into the npm package and break when npm
+replaces or removes it. The README describes how to return to npm ownership.
+
 Use `hermes-npm status --json` to distinguish `npm-release`, `upstream-native`,
 and `missing` runtime states. Use `hermes-npm update` to return to the npm
 Release boundary.

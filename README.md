@@ -266,6 +266,34 @@ outside npm: `~/.local/bin` on macOS and Linux, and `HERMES_HOME\bin` added to
 the user `PATH` on Windows. These are outside the npm release-pinned boundary
 and are the explicit tradeoff for keeping native update behavior unchanged.
 
+After a native update, upstream owns the dependency environment and the
+launchers, and an npm reinstall or `hermes-npm update` does not take them back:
+
+- Upstream records the environment it built under
+  `HERMES_HOME/installs/<key>`, where the key is derived from the checkout
+  path, and selects it at startup. npm reinstalls the package at the same path,
+  so the Release-pinned source then runs on the environment from the native
+  update rather than the package's own `venv`. `hermes-npm update` restores the
+  source commit, not the dependencies, and `hermes-npm status` does not detect
+  this yet. The record lives in `~/.hermes/installs`
+  (`%LOCALAPPDATA%\hermes\installs` on Windows) unless `HERMES_HOME` points
+  outside that directory; `<key>` is the first 16 hex digits of the SHA-256 of
+  the `runtime source` path that `hermes-npm status` prints.
+- The launchers upstream publishes in `~/.local/bin` execute files inside the
+  npm package (`runtime/hermes-agent/.hermes/bin`). They stop working once npm
+  reinstalls or removes the package; if `~/.local/bin` comes before the npm
+  prefix in `PATH`, `hermes` then fails instead of reaching the npm shim.
+  Remove those three files (`hermes`, `hermes-agent`, `hermes-acp`) if they
+  point into the npm package. Setting `cli.expose_on_path: false` in
+  `HERMES_HOME/config.yaml` stops upstream from publishing them on macOS and
+  Linux; it has no effect on Windows, where upstream publishes its launchers
+  in the `bin` directory it adds to the user `PATH`.
+
+To return fully to npm ownership after a native update, remove that
+`installs/<key>` directory and those launchers, then run `hermes-npm update`
+or reinstall the package. User configuration, sessions,
+and skills elsewhere in `HERMES_HOME` are not affected.
+
 ### npm Release channel
 
 Inspect the local relationship between npm and the live checkout:
