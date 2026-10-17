@@ -188,6 +188,15 @@ first launches wait for a single setup. You can also provision ahead of time:
 hermes-npm setup
 ```
 
+> [!IMPORTANT]
+> Run `hermes-npm setup` once before you register `hermes` with an MCP client,
+> a gateway service, or any other program that starts it in the background.
+> Otherwise the first background launch spends 1-2 minutes on setup before
+> Hermes writes anything to stdout, and the client may give up on a startup
+> timeout. Do the same after any `npm install` or `npm update` that replaced
+> the package without running its install script; `hermes-npm update` already
+> provisions the new release before it returns.
+
 To let npm run the install script as on npm 11 and earlier:
 
 ```bash
