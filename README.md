@@ -9,6 +9,32 @@
 [![Telegram chat](https://img.shields.io/badge/Telegram-chat-26A5E4?logo=telegram&logoColor=white)](https://t.me/+AoFg5hgLSlIyYTAy)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
+## Important recent changes
+
+- **npm 12 skips the install script.** npm 12 blocks dependency install
+  scripts by default, so a plain install leaves `hermes` without its runtime.
+  Starting with the first npm release after `0.22.2`, the first `hermes`
+  launch provisions the runtime itself, and `hermes-npm setup` does it ahead
+  of time. On `0.22.2` and earlier, install with
+  `npm install --global --allow-scripts=hermes-agent hermes-agent`.
+  See [npm 12 and install scripts](#npm-12-and-install-scripts).
+- **Run `hermes-npm setup` before background use.** Run it once before you
+  register `hermes` with an MCP client or a gateway service, so the first
+  background launch does not spend 1-2 minutes on setup and hit a startup
+  timeout.
+- **`hermes update` follows upstream `stable` by default.** Unconfigured
+  checkouts track the latest GitHub Release. The rolling `main` branch is
+  opt-in through `hermes update --set-channel main`. See
+  [Two update channels](#two-update-channels).
+- **A native `hermes update` hands dependencies to upstream.** Upstream's
+  package manager then keeps its environment under `HERMES_HOME/installs` and
+  its launchers in `~/.local/bin` (or `HERMES_HOME\bin` on Windows).
+  `hermes-npm status` shows who owns the dependencies. An npm reinstall or a
+  same-version `hermes-npm update` takes them back. See
+  [Native upstream channel](#native-upstream-channel).
+- **The runtime uses Python 3.14** since `0.21.6`, matching upstream. See
+  [Python 3.14 in release 0.21.6](#python-314-in-release-0216).
+
 > [!IMPORTANT]
 > **The deployment model changed in `0.20.0`.** Upstream Hermes Agent stopped
 > publishing new PyPI releases. This bridge now creates a package-local Git
@@ -27,6 +53,7 @@ by Nous Research.
 
 ## Contents
 
+- [Important recent changes](#important-recent-changes)
 - [Choose an installation method](#choose-an-installation-method)
 - [Migration from pre-0.20](#migration-from-pre-020)
 - [Install](#install)
