@@ -238,6 +238,14 @@ test("reclaim keeps an install stamp that upstream tracks", (context) => {
   assert.equal(fs.existsSync(path.join(checkout, "install-stamp.json")), true);
 });
 
+test("reclaim keeps an install stamp when git cannot say whether it is tracked", (context) => {
+  const { checkout, options } = createOwnedCheckout(context);
+  fs.writeFileSync(path.join(checkout, "install-stamp.json"), JSON.stringify({ updateMechanism: "self" }));
+  const result = reclaimNpmOwnership(checkout, { ...options, isTracked: () => null, ...quietLog() });
+  assert.deepEqual(result.removed, []);
+  assert.equal(fs.existsSync(path.join(checkout, "install-stamp.json")), true);
+});
+
 test("reclaim refuses upstream state reached through a symbolic link", (context) => {
   const { checkout, hermesHome, options } = createOwnedCheckout(context);
   const elsewhere = path.join(path.dirname(hermesHome), "elsewhere");
