@@ -30,6 +30,7 @@ by Nous Research.
 - [Choose an installation method](#choose-an-installation-method)
 - [Migration from pre-0.20](#migration-from-pre-020)
 - [Install](#install)
+- [npm 12 and install scripts](#npm-12-and-install-scripts)
 - [Two update channels](#two-update-channels)
 - [Move from npm to an upstream-managed install](#move-from-npm-to-an-upstream-managed-install)
 - [Commands](#commands)
@@ -49,7 +50,7 @@ before copying an install command.
 
 | Method | Install | Code and venv | Updates | Removal |
 | --- | --- | --- | --- | --- |
-| npm-isolated (recommended for npm users) | Global: `npm install --global hermes-agent`; project: `npm install hermes-agent` | Inside the npm package | `hermes update` or `hermes-npm update` | Matching global/project `npm uninstall` |
+| npm-isolated (recommended for npm users) | Global: `npm install --global hermes-agent`; project: `npm install hermes-agent` ([npm 12](#npm-12-and-install-scripts)) | Inside the npm package | `hermes-npm update` or `hermes update` | Matching global/project `npm uninstall` |
 | upstream-managed | [Official upstream installer](https://github.com/NousResearch/hermes-agent#quick-install) or the handoff below | User-scoped `$HERMES_HOME/hermes-agent` | `hermes update` | `hermes uninstall` |
 | manual development | [Upstream contributing guide](https://hermes-agent.nousresearch.com/docs/developer-guide/contributing) | Developer checkout with an external venv | Developer-managed Git and `uv` | Remove the selected checkout and venv |
 
@@ -112,7 +113,7 @@ Starting with `0.20.0`:
   metadata;
 - upstream source is checked out at the exact GitHub Release tag and commit;
 - dependencies are synchronized from upstream `uv.lock`;
-- `hermes update` remains the native upstream rolling updater;
+- `hermes update` remains the native upstream updater;
 - `hermes-npm update` is the explicit npm Release updater.
 
 Upgrade globally with:
@@ -155,6 +156,14 @@ minutes. A Windows test installation of `0.20.0` occupied about 450 MB after
 the temporary dependency cache was removed; size varies by platform and future
 upstream dependencies.
 
+If npm skipped the install script (npm 12 does by default, as does
+`--ignore-scripts`), the first `hermes` or `hermes-agent` launch performs the
+same provisioning before starting Hermes, or you can run it explicitly:
+
+```bash
+hermes-npm setup
+```
+
 > [!WARNING]
 > Stop running Hermes gateways and agents before an npm reinstall or npm-channel
 > update. npm may replace the package-local checkout and virtual environment.
@@ -165,16 +174,64 @@ upstream dependencies.
 > can delete the package-local runtime without removing the npm package. Use
 > `npm uninstall hermes-agent` or `npm uninstall --global hermes-agent`.
 
+## npm 12 and install scripts
+
+npm 12 blocks dependency install scripts by default. A plain
+`npm install --global hermes-agent` then installs only the command shims and
+prints `install scripts blocked`. The bridge handles this itself: the first
+`hermes` (or `hermes-agent`, or `npx hermes`) launch runs the package's own
+installer, prints a one-line note to stderr, and continues once the runtime is
+ready. This is a one-time download that usually takes 1-2 minutes; concurrent
+first launches wait for a single setup. You can also provision ahead of time:
+
+```bash
+hermes-npm setup
+```
+
+To let npm run the install script as on npm 11 and earlier:
+
+```bash
+# global, once
+npm install --global --allow-scripts=hermes-agent hermes-agent
+
+# global, every future install
+npm config set allow-scripts=hermes-agent --location=user
+```
+
+For a project dependency, npm 12 rejects `--allow-scripts` and records the
+approval in `package.json` instead:
+
+```bash
+npm install hermes-agent
+npm install-scripts approve hermes-agent
+npm rebuild hermes-agent
+```
+
+By default `approve` pins the entry to the installed version
+(`"allowScripts": {"hermes-agent@<version>": true}`), so every version bump
+needs a new approval. `npm install-scripts approve --no-allow-scripts-pin hermes-agent`
+writes a name-only entry instead. Without any approval, `hermes-npm setup` or
+the first launch provisions the runtime.
+
+`hermes-npm update` does not depend on npm running the script either: after
+npm installs the checked release, it runs the new package's installer directly
+when the runtime is missing. On npm 11 and earlier nothing changes, because
+npm has already provisioned the runtime by then.
+
+Set `HERMES_NPM_AUTO_SETUP=0` to turn off provisioning on launch; `hermes` then
+exits with an error that points to `hermes-npm setup`.
+
 ## Two update channels
 
 The bridge intentionally exposes two independent update channels.
 
 | Channel | Command | Source | Result |
 | --- | --- | --- | --- |
-| Native rolling | `hermes update` | Upstream Git branch, normally `main` | Runs the unmodified upstream updater |
 | npm Release | `hermes-npm update` | Latest published `hermes-agent` npm version | Returns to the latest GitHub Release pinned by npm |
+| Native upstream | `hermes update` | Upstream `stable` channel by default: the latest GitHub Release, forward only | Runs the unmodified upstream updater |
+| Native rolling (opt-in) | `hermes update --set-channel main`, then `hermes update` | Upstream `main` branch | Runs the unmodified upstream updater on the rolling branch |
 
-### Native rolling channel
+### Native upstream channel
 
 ```bash
 hermes update --check
@@ -185,17 +242,29 @@ These arguments are passed directly to the official upstream console
 entrypoint. The bridge does not replace `cmd_update`, set `HERMES_MANAGED`, or
 translate the command into npm operations.
 
-After a native update, the source checkout can be newer than both the npm
-package version and the latest upstream GitHub Release. This is expected. npm
-integrity and provenance still cover the bridge package, but no longer attest
-to source subsequently fetched by the native updater.
+Since upstream `v0.21.6`, an official checkout with no configured channel
+tracks `stable`: `hermes update --check` prints `Update channel: stable`, and
+`hermes update` moves only forward to the latest upstream GitHub Release. The
+package-local checkout counts as such a checkout. The rolling `main` branch is
+opt-in through `hermes update --set-channel main` (`--set-channel stable`
+returns). Because the bridge publishes each upstream Release to npm, the
+native stable channel usually reaches a new Release before `hermes-npm update`
+does, and lands on the same commit.
 
-The upstream updater may also install its own managed tools, dependencies, or
-runtime files according to upstream behavior. In the current upstream release,
-that includes a managed `uv` under `HERMES_HOME/bin` (normally `~/.hermes/bin`)
-and may include checkout-local runtime-repair files. This is outside the npm
-release-pinned boundary and is the explicit tradeoff for keeping native update
-behavior unchanged.
+After a native update, the source checkout can be newer than the npm package
+version, and on the `main` channel newer than the latest upstream GitHub
+Release. This is expected. npm integrity and provenance still cover the bridge
+package, but no longer attest to source subsequently fetched by the native
+updater.
+
+The upstream updater also manages its own tools and environments according to
+upstream behavior. In upstream `v0.22.x` it unshallows the package-local Git
+checkout, builds a new dependency environment with its own managed Python and
+`uv` under `HERMES_HOME/installs` and `HERMES_HOME/tools`, writes an
+`install-stamp.json` into the checkout, and can publish `hermes` launchers
+outside npm: `~/.local/bin` on macOS and Linux, and `HERMES_HOME\bin` added to
+the user `PATH` on Windows. These are outside the npm release-pinned boundary
+and are the explicit tradeoff for keeping native update behavior unchanged.
 
 ### npm Release channel
 
@@ -228,13 +297,13 @@ npm install --global --registry=https://registry.npmjs.org hermes-agent@<checked
 npm install --registry=https://registry.npmjs.org hermes-agent@<checked-version>
 ```
 
-An npm update intentionally replaces native rolling changes with the exact
-checkout pinned by the npm Release. If npm is already at the latest version but
+An npm update intentionally replaces source moved by a native update with
+the exact checkout pinned by the npm Release. If npm is already at the latest version but
 the live checkout has moved, `hermes-npm update` directly reprovisions that
 same release commit. This discards tracked source changes in the package-local
 checkout; upstream user configuration under `HERMES_HOME` is unaffected.
-Running `npm rebuild` for the same package version instead
-preserves an existing native-updated checkout and only resynchronizes its
+Running `hermes-npm setup` (or `npm rebuild`) for the same package version
+instead preserves an existing native-updated checkout and only resynchronizes its
 environment.
 
 ### Python 3.14 in release 0.21.6
@@ -300,7 +369,7 @@ Configuration, credentials, sessions, memories, skills, and other user state
 under `HERMES_HOME` are preserved. The command refuses a non-Git target, a Git
 target with an unexpected origin or uncommitted files, a `HERMES_HOME` inside
 the npm package, or a runtime that has moved off its packaged Release. Run
-`hermes-npm update` first if native rolling changes need to be reset before
+`hermes-npm update` first if native update changes need to be reset before
 handoff. Existing upstream checkout changes must be committed, stashed, or
 removed explicitly; the bridge never answers an upstream restore prompt.
 
@@ -347,6 +416,7 @@ then install the exact checked canonical version.
 | `hermes-npm status [--json]` | Report npm identity, exact live Git commit, channel, dirty state, and install scope |
 | `hermes-npm check [--json]` | Read the canonical npm Release channel without changing files |
 | `hermes-npm update` | Install the checked exact npm version or reset the current runtime to its packaged Release |
+| `hermes-npm setup` | Install or repair the isolated runtime of the installed npm version (alias: `provision`) |
 | `hermes-npm methods [--json]` | List supported installation/ownership models for users and automation |
 | `hermes-npm migrate upstream [--json]` | Show the one-way upstream handoff plan without changing files |
 | `hermes-npm migrate upstream --yes` | Execute, verify, and finish the upstream handoff |
@@ -354,7 +424,10 @@ then install the exact checked canonical version.
 
 ## How installation works
 
-`scripts/postinstall.js` performs the following without invoking a shell:
+`scripts/postinstall.js` performs the following without invoking a shell. npm
+runs it as the package install script; when npm skips that script, the first
+launch, `hermes-npm setup`, and `hermes-npm update` run the same file directly
+with the current Node.js under a lock file in the package directory.
 
 1. Validates the upstream repository, Release tag, and full commit SHA stored
    in `package.json`.
@@ -386,7 +459,9 @@ macOS/Linux:   runtime/hermes-agent/venv/bin/hermes
 ```
 
 Arguments, current working directory, standard streams, exit code, and native
-upstream update handling are preserved.
+upstream update handling are preserved. When the console script is missing,
+the launcher provisions the runtime first and sends that output to stderr, so
+the command's stdout stays clean.
 
 ## Runtime layout and isolation
 
@@ -438,7 +513,8 @@ non-prerelease upstream GitHub Release once and then:
 6. publishes through npm trusted publishing with provenance.
 
 Polling follows GitHub Releases, not PyPI and not the tip of `main`. Native
-`hermes update` remains independent and may advance between Releases.
+`hermes update` remains independent; it follows Releases by default and the
+`main` branch only after `hermes update --set-channel main`.
 
 ## Security and privacy
 
@@ -462,10 +538,13 @@ npm install --ignore-scripts ./hermes-agent-*.tgz
 After review:
 
 ```bash
-npm rebuild hermes-agent
+hermes-npm setup
 ```
 
-Use `npm rebuild --global hermes-agent` for a global installation.
+`npm rebuild hermes-agent` (`npm rebuild --global hermes-agent` for a global
+installation) does the same on npm 11 and earlier, and on npm 12 once the
+install script is allowed. Running `hermes` before the review also provisions
+the runtime; set `HERMES_NPM_AUTO_SETUP=0` while auditing to prevent that.
 
 ## Troubleshooting
 
@@ -478,16 +557,21 @@ Git is required for the native 'hermes update' channel
 Install Git, confirm `git --version`, and run:
 
 ```bash
-npm rebuild hermes-agent
+hermes-npm setup
 ```
 
 ### Runtime is not ready
 
-If installation was performed with `--ignore-scripts`, provision it explicitly:
+If npm skipped the install script (npm 12 by default, or `--ignore-scripts`),
+the first `hermes` launch provisions the runtime. If that failed or was
+disabled with `HERMES_NPM_AUTO_SETUP=0`, provision it explicitly:
 
 ```bash
-npm rebuild hermes-agent
+hermes-npm setup
 ```
+
+For a root-owned global npm prefix, run it with the same privileges used for
+`npm install --global`.
 
 ### Native and npm versions differ
 
@@ -506,10 +590,10 @@ package runtime, then retry the npm update.
 
 ### `hermes uninstall` broke an npm installation
 
-Rebuild or reinstall the npm package:
+Re-provision or reinstall the npm package:
 
 ```bash
-npm rebuild hermes-agent
+hermes-npm setup
 # or
 npm install --global hermes-agent@latest
 ```

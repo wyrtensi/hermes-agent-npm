@@ -74,11 +74,37 @@ shim_status=$?
 note "npm shim exit code: $shim_status"
 endsection
 
+# The updater keys its environment record on the checkout path, which an npm
+# reinstall keeps. Reinstall the same npm release and see which dependency
+# environment upstream would load for the fresh checkout.
+section "npm reinstall of the pinned release after the native update"
+npm install --global "$work/$tarball" > "$work/reinstall.log" 2>&1
+reinstall_status=$?
+tail -n 20 "$work/reinstall.log" | block
+{
+  echo "npm reinstall exit code: $reinstall_status"
+  echo "checkout HEAD: $(git -C "$runtime" rev-parse HEAD)"
+  echo "install-stamp.json: $(cat "$runtime/install-stamp.json" 2>&1)"
+  echo "environment upstream selects for the fresh checkout:"
+  "$runtime/venv/bin/python" -c 'import sys; from pathlib import Path; from pm.environments import committed_venv; print(committed_venv(Path(sys.argv[1])))' "$runtime" 2>&1
+  echo "hermes --version:"; "$bin_dir/hermes" --version 2>&1
+  echo "exit code: $?"
+  echo "hermes-npm status:"; hermes-npm status 2>&1
+} | block
+"$bin_dir/hermes" --version > /dev/null 2>&1
+reinstalled_shim_status=$?
+note "npm shim exit code after reinstall: $reinstalled_shim_status"
+endsection
+
 if [ "$update_status" -ne 0 ]; then
   echo "native 'hermes update' failed with exit code $update_status" >&2
 fi
 if [ "$shim_status" -ne 0 ]; then
   echo "the npm 'hermes' shim no longer launches after a native update" >&2
+  exit 1
+fi
+if [ "$reinstalled_shim_status" -ne 0 ]; then
+  echo "the npm 'hermes' shim does not launch after reinstalling npm over a native update" >&2
   exit 1
 fi
 exit "$update_status"
