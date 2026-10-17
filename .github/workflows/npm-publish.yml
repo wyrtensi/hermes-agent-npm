@@ -79,7 +79,7 @@ jobs:
     needs: prepare
     if: needs.prepare.outputs.should_publish == 'true'
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 35
+    timeout-minutes: 50
     strategy:
       fail-fast: false
       matrix:
@@ -123,6 +123,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: npm run smoke
+
+      - name: Verify first launch under npm 12 without install scripts
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bash scripts/ci/npm12-smoke.sh
 
   publish:
     name: Publish hermes-agent to npm

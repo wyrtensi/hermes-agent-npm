@@ -1,0 +1,56 @@
+name: Native update probe
+
+# Checks whether a real upstream 'hermes update' keeps an npm-installed bridge
+# launchable. It installs the bridge pinned to an older upstream Release and
+# lets the native updater move it forward inside a disposable runner.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "41 5 * * 1"
+  pull_request:
+    paths:
+      - "lib/python-launcher.js"
+      - "lib/provision.js"
+      - "scripts/postinstall.js"
+      - "scripts/ci/native-update-probe.sh"
+      - ".github/workflows/native-update.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: Native hermes update (ubuntu-latest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out npm wrapper
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e
+        with:
+          node-version: "24"
+
+      - name: Set up Python for release metadata sync
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
+        with:
+          python-version: "3.13"
+
+      - name: Pin the bridge to upstream v0.22.1
+        env:
+          SYNC_FROM_EXPECTED: "1"
+          EXPECTED_UPSTREAM_TAG: v0.22.1
+          EXPECTED_UPSTREAM_COMMIT: 297552a9d646119871391d202509822cd86330df
+          EXPECTED_UPSTREAM_VERSION: 0.22.1
+          EXPECTED_UPSTREAM_DESCRIPTION_B64: SGVybWVzIEFnZW50IGZyb20gTm91cyBSZXNlYXJjaA==
+        run: python scripts/sync_upstream_version.py
+
+      - name: Run native hermes update against the npm-installed bridge
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: bash scripts/ci/native-update-probe.sh
