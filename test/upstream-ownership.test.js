@@ -10,6 +10,7 @@ const {
   getInstallKey,
   getPlatformDefaultHermesHome,
   readUpstreamOwnership,
+  reclaimNpmOwnership,
   resolveLikePython
 } = require("../lib/upstream-ownership");
 
@@ -178,4 +179,81 @@ test("flags an untracked self-managed install stamp", (context) => {
 
   fs.writeFileSync(path.join(checkout, "install-stamp.json"), JSON.stringify({ updateMechanism: "packaged" }));
   assert.equal(readUpstreamOwnership(checkout, { ...options, isTracked: () => false }).selfManagedStamp, false);
+});
+
+function quietLog() {
+  const messages = [];
+  return { messages, log: (line) => messages.push(line), warn: (line) => messages.push(`warn: ${line}`) };
+}
+
+test("reclaims only this checkout's upstream state and install stamp", (context) => {
+  const { checkout, hermesHome, options, stateDirectory } = createOwnedCheckout(
+    context,
+    JSON.stringify({ packages: { venv: { environment: "x" } } })
+  );
+  fs.mkdirSync(path.join(stateDirectory, "environments", "abc", "venv"), { recursive: true });
+  fs.writeFileSync(path.join(stateDirectory, "environments", "abc", "venv", "pyvenv.cfg"), "");
+  const otherInstall = path.join(hermesHome, "installs", "0123456789abcdef");
+  fs.mkdirSync(otherInstall, { recursive: true });
+  fs.writeFileSync(path.join(otherInstall, "facts.json"), "{}");
+  fs.mkdirSync(path.join(hermesHome, "tools", "python"), { recursive: true });
+  fs.writeFileSync(path.join(hermesHome, "config.yaml"), "model: x\n");
+  fs.writeFileSync(path.join(checkout, "install-stamp.json"), JSON.stringify({ updateMechanism: "self" }));
+  fs.writeFileSync(path.join(checkout, "pyproject.toml"), "");
+
+  const output = quietLog();
+  const result = reclaimNpmOwnership(checkout, { ...options, isTracked: () => false, ...output });
+
+  assert.deepEqual(result.failed, []);
+  assert.equal(fs.existsSync(stateDirectory), false);
+  assert.equal(fs.existsSync(path.join(checkout, "install-stamp.json")), false);
+  assert.equal(fs.existsSync(path.join(checkout, "pyproject.toml")), true);
+  assert.equal(fs.existsSync(path.join(otherInstall, "facts.json")), true);
+  assert.equal(fs.existsSync(path.join(hermesHome, "tools", "python")), true);
+  assert.equal(fs.existsSync(path.join(hermesHome, "config.yaml")), true);
+  assert.deepEqual(result.removed, [
+    path.join(checkout, "install-stamp.json"),
+    path.join(stateDirectory, "facts.json"),
+    stateDirectory
+  ]);
+  assert.ok(output.messages.some((line) => line.includes(stateDirectory)));
+  assert.equal(readUpstreamOwnership(checkout, options).dependenciesOwner, "npm");
+});
+
+test("reclaim is a no-op without upstream state", (context) => {
+  const { checkout, hermesHome, options } = createOwnedCheckout(context);
+  fs.mkdirSync(hermesHome, { recursive: true });
+  const output = quietLog();
+  const result = reclaimNpmOwnership(checkout, { ...options, isTracked: () => false, ...output });
+  assert.deepEqual(result, { removed: [], failed: [] });
+  assert.deepEqual(output.messages, []);
+  assert.deepEqual(fs.readdirSync(hermesHome), []);
+});
+
+test("reclaim keeps an install stamp that upstream tracks", (context) => {
+  const { checkout, options } = createOwnedCheckout(context);
+  fs.writeFileSync(path.join(checkout, "install-stamp.json"), JSON.stringify({ updateMechanism: "self" }));
+  const result = reclaimNpmOwnership(checkout, { ...options, isTracked: () => true, ...quietLog() });
+  assert.deepEqual(result.removed, []);
+  assert.equal(fs.existsSync(path.join(checkout, "install-stamp.json")), true);
+});
+
+test("reclaim refuses upstream state reached through a symbolic link", (context) => {
+  const { checkout, hermesHome, options } = createOwnedCheckout(context);
+  const elsewhere = path.join(path.dirname(hermesHome), "elsewhere");
+  fs.mkdirSync(path.join(elsewhere, getInstallKey(checkout)), { recursive: true });
+  fs.writeFileSync(path.join(elsewhere, getInstallKey(checkout), "facts.json"), "{}");
+  fs.mkdirSync(hermesHome, { recursive: true });
+  try {
+    fs.symlinkSync(elsewhere, path.join(hermesHome, "installs"), "junction");
+  } catch (error) {
+    context.skip(`symlinks are unavailable: ${error.code}`);
+    return;
+  }
+  const output = quietLog();
+  const result = reclaimNpmOwnership(checkout, { ...options, isTracked: () => false, ...output });
+  assert.equal(result.removed.length, 0);
+  assert.equal(result.failed.length, 1);
+  assert.equal(fs.existsSync(path.join(elsewhere, getInstallKey(checkout), "facts.json")), true);
+  assert.ok(output.messages.some((line) => line.startsWith("warn: Refusing")));
 });

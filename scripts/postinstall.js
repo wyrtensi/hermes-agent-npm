@@ -9,6 +9,7 @@ const { getRelatedPackageNames } = require("../lib/package-metadata");
 const { holdProvisionLockForInstaller } = require("../lib/provision");
 const { getRuntimeSourceDirectory, getVenvDirectory } = require("../lib/python-launcher");
 const { configureRuntimeSparseCheckout } = require("../lib/runtime-checkout");
+const { reclaimNpmOwnership } = require("../lib/upstream-ownership");
 const { ensureUv, UV_VERSION } = require("../lib/uv-installer");
 
 const packageName = packageJson.name;
@@ -206,6 +207,34 @@ function installPinnedCheckout() {
   };
 }
 
+// A native 'hermes update' leaves upstream's package manager in charge of the
+// checkout's dependencies: a record under HERMES_HOME/installs/<key> that
+// selects its own environment, and a self-managed install stamp in the
+// checkout. Once this installer has put the checkout back on the pinned
+// commit, remove exactly those two so the package venv is used again. Only
+// the paths that replace or reset the checkout call this; keeping the
+// checkout keeps a native update, and its dependencies, on purpose.
+function reclaimDependencyOwnership() {
+  const result = reclaimNpmOwnership(sourceDirectory, {
+    isTracked(file) {
+      try {
+        return git(["-C", sourceDirectory, "ls-files", "--", file], { capture: true }) !== "";
+      } catch {
+        return null;
+      }
+    }
+  });
+  if (result.removed.length > 0) {
+    console.log("Dependency selection returned to the npm package venv.");
+  }
+  if (result.failed.length > 0) {
+    console.warn(
+      "Upstream's package manager may still select its own environment for this checkout; " +
+        "'hermes-npm status' shows the owner. Stop running Hermes processes and run 'hermes-npm update' to retry."
+    );
+  }
+}
+
 function uvBootstrapEnvironment() {
   const env = {
     ...process.env,
@@ -330,7 +359,12 @@ async function provision() {
       npmUpdateCommand: "hermes-npm update"
     };
     fs.writeFileSync(runtimeMarkerPath, `${JSON.stringify(runtimeMarker, null, 2)}\n`, "utf8");
+    const checkoutReprovisioned = transaction !== null;
     transaction?.commit();
+    // Nothing below may roll the checkout back: the reclaim deletes state
+    // that a rollback could not restore.
+    transaction = null;
+    if (checkoutReprovisioned) reclaimDependencyOwnership();
     console.log("Hermes Agent npm runtime is ready.");
     console.log("Use 'hermes-npm update' for npm releases or 'hermes update' for the native upstream updater.");
   } catch (error) {

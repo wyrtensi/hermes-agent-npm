@@ -11,7 +11,9 @@ on:
   pull_request:
     paths:
       - "lib/python-launcher.js"
+      - "lib/npm-channel.js"
       - "lib/provision.js"
+      - "lib/upstream-ownership.js"
       - "scripts/postinstall.js"
       - "scripts/ci/native-update-probe.sh"
       - ".github/workflows/native-update.yml"
@@ -23,7 +25,7 @@ jobs:
   probe:
     name: Native hermes update (ubuntu-latest)
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
 
     steps:
       - name: Check out npm wrapper
