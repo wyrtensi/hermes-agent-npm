@@ -15,7 +15,8 @@ const {
 const {
   applyReleaseUpdate,
   getNpmSpawnSpec,
-  getUpdatedPackageRoot
+  getUpdatedPackageRoot,
+  runSetup
 } = require("../lib/npm-channel");
 const {
   countPostinstallRuns,
@@ -211,6 +212,22 @@ test("hermes-npm setup propagates installer failure and rejects options", async 
   assert.equal(unknown.status, 2);
   assert.match(unknown.stderr, /Unknown setup option: --yes/);
   assert.equal(countPostinstallRuns(packageRoot), 1);
+});
+
+test("same-version release reset goes through the locked installer", (context) => {
+  quietConsole(context);
+  let options = null;
+  const status = runSetup({
+    args: ["--force-release"],
+    provisionRuntime: (received) => {
+      options = received;
+      return { status: 0, provisioned: true };
+    }
+  });
+  assert.equal(status, 0);
+  assert.deepEqual(options.args, ["--force-release"]);
+  assert.equal(options.stdio, "inherit");
+  assert.equal(runSetup({ provisionRuntime: () => ({ status: 1, error: "locked out" }) }), 1);
 });
 
 test("starts npm through cmd.exe on Windows and directly elsewhere", () => {
