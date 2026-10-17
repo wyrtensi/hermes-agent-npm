@@ -14,8 +14,9 @@ updates.
 
 Security fixes in upstream Hermes Agent become available to this channel after
 upstream publishes a GitHub Release and the matching npm bridge passes its
-release checks. The native rolling channel can receive upstream commits sooner,
-with the different trust boundary described below.
+release checks. The native upstream updater can apply a Release sooner, and
+upstream `main` commits when switched to the rolling channel, with the
+different trust boundary described below.
 
 ## Reporting a vulnerability
 
@@ -43,7 +44,9 @@ This policy covers:
 
 - the npm command shims and `hermes-npm` release-channel commands;
 - the explicit `hermes-npm migrate upstream` handoff and its preflight checks;
-- npm lifecycle provisioning in `scripts/postinstall.js`;
+- npm lifecycle provisioning in `scripts/postinstall.js`, including its
+  direct execution on first launch, by `hermes-npm setup`, and by
+  `hermes-npm update` when npm skipped the install script;
 - `uv` asset selection, download, checksum verification, and extraction;
 - GitHub Release metadata synchronization and npm publishing workflows;
 - confinement of npm lifecycle installer-created files to the installed npm
@@ -68,7 +71,7 @@ The bridge is intended to preserve these properties:
 6. Python, the virtual environment, the Git checkout, and temporary caches
    created by npm lifecycle installation remain inside the npm package.
 7. `hermes update` is passed to the upstream console entrypoint unchanged; the
-   bridge does not falsely represent rolling source as npm-attested source.
+   bridge does not falsely represent natively updated source as npm-attested source.
 8. A release-channel reset returns tracked upstream source to the commit pinned
    by npm without deleting untracked files with `git clean`.
 9. npm publication is blocked unless Windows, macOS, and Linux runtime smoke
@@ -77,6 +80,11 @@ The bridge is intended to preserve these properties:
     A handoff requires `migrate upstream --yes`, uses the script from the
     verified Release checkout, pins the same full commit, verifies the new
     checkout/venv, and removes npm ownership only after that verification.
+11. When npm skips the install script, the bridge provisions only by running
+    the installed package's own `scripts/postinstall.js` with the current
+    Node.js, with the same verification and package-local boundary as the
+    npm lifecycle. It never passes `--allow-scripts` to npm or changes npm
+    configuration.
 
 A change that violates one of these invariants is security-relevant even if no
 exploit has yet been demonstrated.
@@ -94,6 +102,18 @@ Lifecycle scripts execute with the installing user's permissions. Review the
 package before installation when that is not an acceptable trust decision; the
 audit procedure below avoids lifecycle execution.
 
+npm 12 blocks dependency install scripts by default, so `npm install` may leave
+only the command shims. The same `scripts/postinstall.js` then runs when the
+user first starts `hermes` or `hermes-agent`, runs `hermes-npm setup`, or
+updates with `hermes-npm update`. It runs with the permissions of that user,
+in the package directory, under a lock file
+(`.hermes-agent-provision.lock`) that serializes concurrent first launches.
+Starting a Hermes command is treated as consent to provision it; set
+`HERMES_NPM_AUTO_SETUP=0` to require an explicit `hermes-npm setup` instead.
+Allowing the script in npm (`--allow-scripts=hermes-agent` for global installs,
+`npm install-scripts approve hermes-agent` for projects) restores provisioning
+during installation.
+
 ## Exact install behavior
 
 `scripts/postinstall.js` and `lib/uv-installer.js`:
@@ -107,7 +127,8 @@ audit procedure below avoids lifecycle execution.
    supported architecture and Linux libc variants;
 5. enforce compressed and extracted size limits, verify SHA-256, and extract
    only `uv`/`uv.exe` with Node.js;
-6. provision managed Python 3.11 under `runtime/python/`;
+6. provision the managed Python version pinned in the package metadata
+   (`hermesAgent.pythonVersion`, currently 3.14) under `runtime/python/`;
 7. create `runtime/hermes-agent/venv/` and run
    `uv sync --frozen --extra all --no-dev` using upstream project configuration
    and `uv.lock`;
@@ -136,7 +157,7 @@ The bridge deliberately provides two update channels.
 registry. When a newer package exists, `hermes-npm update` installs the exact
 version that was checked from that same registry; it does not perform a second
 mutable `@latest` resolution. If the npm package is already current, the command
-resets a clean rolling checkout in place to the tag/commit pinned by the
+resets a clean natively updated checkout in place to the tag/commit pinned by the
 installed npm version. A dirty or damaged checkout is replaced transactionally
 with rollback where possible.
 
@@ -144,13 +165,27 @@ npm integrity and provenance cover the bridge tarball and its pinned Release
 identity. They do not include dependencies downloaded during lifecycle
 execution.
 
-### Native rolling channel
+### Native upstream channel
 
 `hermes update` and `hermes update --check` run the unmodified upstream updater.
-The updater normally follows upstream `main`, mutates the package-local checkout
-and venv, and may install managed tools under `HERMES_HOME` (currently a managed
-`uv` under `HERMES_HOME/bin`). After a rolling update, npm provenance no longer
-attests to the live upstream source.
+Since upstream `v0.21.6`, an official checkout with no configured channel,
+including the package-local one, follows upstream's `stable` channel: the
+latest GitHub Release, forward only. `hermes update --set-channel main` opts
+into the rolling `main` branch. The updater mutates the package-local checkout
+(including unshallowing it), builds its own dependency environments and managed
+tools under `HERMES_HOME`, writes `install-stamp.json` into the checkout, and
+can publish launchers outside npm (`~/.local/bin` on macOS and Linux, a
+`HERMES_HOME\bin` user `PATH` entry on Windows). After a native update, npm
+provenance no longer attests to the live upstream source.
+
+The dependency environment the native updater builds is recorded under
+`HERMES_HOME/installs/`, keyed by the checkout path, and upstream selects it at
+startup. Because an npm reinstall keeps that path, a later `hermes-npm update`
+returns tracked source to the Release commit but does not return dependency
+selection to the package's own `venv`; the bridge does not delete state under
+`HERMES_HOME`, and `hermes-npm status` does not yet report this case. Launchers
+published to `~/.local/bin` point into the npm package and break when npm
+replaces or removes it. The README describes how to return to npm ownership.
 
 Use `hermes-npm status --json` to distinguish `npm-release`, `upstream-native`,
 and `missing` runtime states. Use `hermes-npm update` to return to the npm
@@ -213,6 +248,9 @@ runtime/cache/
 runtime/python/
 runtime/hermes-agent/
 ```
+
+Provisioning also creates the transient `.hermes-agent-provision.lock` while
+it runs.
 
 It does not modify system Python, shell profiles, the global `PATH` beyond
 normal npm command shims, services, scheduled tasks, or Git configuration.
@@ -282,9 +320,10 @@ and impact; these examples are not automatic ratings.
 - The commit pin prevents tag retargeting from silently changing a published
   npm version, but this bridge does not independently verify a Git tag's GPG or
   SSH signature.
-- Native rolling updates intentionally follow a mutable upstream branch and
-  can move beyond reviewed Releases or create files outside the npm package
-  under `HERMES_HOME`.
+- Native updates are upstream's trust domain: by default they move the
+  checkout to the latest upstream Release before the bridge has published and
+  smoke-tested it, on the opt-in `main` channel they follow a mutable branch
+  beyond reviewed Releases, and they create files outside the npm package.
 - Host compromise, malicious npm/Git configuration, or write access to the
   installed package can invalidate local guarantees.
 - Only the latest npm bridge release is maintained; users must update to
@@ -331,13 +370,17 @@ package/lib/upstream-migration.js
 ```
 
 Compare `hermesAgent.upstreamGitTag` and `hermesAgent.upstreamCommit` with the
-official upstream Release. After review, provision with:
+official upstream Release. Starting `hermes` provisions the runtime, so keep
+`HERMES_NPM_AUTO_SETUP=0` set until the review is done. After review, provision
+with:
 
 ```bash
-npm rebuild hermes-agent
-# or, for a global installation:
-npm rebuild --global hermes-agent
+hermes-npm setup
 ```
+
+`npm rebuild hermes-agent` (or `npm rebuild --global hermes-agent`) is
+equivalent on npm 11 and earlier, and on npm 12 once the install script is
+allowed.
 
 Security scanners are expected to flag the lifecycle script. Treat that as a
 prompt to review the explicit download, verification, and execution boundary,

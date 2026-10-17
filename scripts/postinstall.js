@@ -6,6 +6,7 @@ const path = require("node:path");
 
 const packageJson = require("../package.json");
 const { getRelatedPackageNames } = require("../lib/package-metadata");
+const { holdProvisionLockForInstaller } = require("../lib/provision");
 const { getRuntimeSourceDirectory, getVenvDirectory } = require("../lib/python-launcher");
 const { configureRuntimeSparseCheckout } = require("../lib/runtime-checkout");
 const { ensureUv, UV_VERSION } = require("../lib/uv-installer");
@@ -85,7 +86,7 @@ function ensureGit() {
     return run("git", ["--version"], { capture: true, env: cleanGitEnvironment() });
   } catch {
     throw new Error(
-      "Git is required for the native 'hermes update' channel. Install Git and run 'npm rebuild hermes-agent'."
+      "Git is required for the native 'hermes update' channel. Install Git and run 'hermes-npm setup'."
     );
   }
 }
@@ -276,6 +277,17 @@ function warnIfRelatedPackageInstalled() {
 }
 
 async function main() {
+  const lock = holdProvisionLockForInstaller(packageRoot, {
+    onWait: (holder) => console.log(`Waiting for another Hermes Agent setup to finish${holder?.pid ? ` (PID ${holder.pid})` : ""}...`)
+  });
+  try {
+    await provision();
+  } finally {
+    lock.release();
+  }
+}
+
+async function provision() {
   validateMetadata();
   warnIfRelatedPackageInstalled();
   console.log(ensureGit());
@@ -290,7 +302,7 @@ async function main() {
 
   try {
     if (keepCurrentCheckout) {
-      console.log("Keeping the existing checkout; native rolling updates are preserved for this npm version.");
+      console.log("Keeping the existing checkout; native updates are preserved for this npm version.");
     } else if (resetCurrentCheckout) {
       console.log("Resetting the clean runtime to the release commit pinned by this npm package...");
       transaction = resetPinnedCheckoutInPlace();
@@ -320,7 +332,7 @@ async function main() {
     fs.writeFileSync(runtimeMarkerPath, `${JSON.stringify(runtimeMarker, null, 2)}\n`, "utf8");
     transaction?.commit();
     console.log("Hermes Agent npm runtime is ready.");
-    console.log("Use 'hermes update' for upstream rolling updates or 'hermes-npm update' for npm releases.");
+    console.log("Use 'hermes-npm update' for npm releases or 'hermes update' for the native upstream updater.");
   } catch (error) {
     transaction?.rollback();
     throw new Error(`Failed to prepare the isolated Hermes Agent runtime: ${error.message}`);
